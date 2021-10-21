@@ -1,0 +1,64 @@
+<odoo>
+
+    <record id="partner_record_form_view" model="ir.ui.view">
+        <field name="name">partner record</field>
+        <field name="model">partner.record</field>
+        <field name="arch" type="xml">
+            <form>
+            </form>
+        </field>
+    </record>
+
+    <record id="partner_record_tree_view" model="ir.ui.view">
+        <field name="name">contract.contract tree view (in contract)</field>
+        <field name="model">contract.contract</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name" string="Name" />
+                <field name="code" />
+                <field name="journal_id" groups="account.group_account_user" />
+                <field name="partner_id" />
+                <field name="active" invisible="1" />
+                <field name="company_id" groups="base.group_multi_company" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="partner_record_search_view" model="ir.ui.view">
+        <field name="name">contract.contract search view (in contract)</field>
+        <field name="model">contract.contract</field>
+        <field name="arch" type="xml">
+            <search>
+                <field
+                    name="name"
+                    filter_domain="['|', ('name','ilike',self), ('code','ilike',self)]"
+                />
+            </search>
+        </field>
+    </record>
+
+    <record id="action_partner_record" model="ir.actions.act_window">
+        <field name="name">Customer Contracts</field>
+        <field name="res_model">contract.contract</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('contract_type', '=', 'sale')]</field>
+        <field name="context">
+            {'is_contract':1,
+            'search_default_not_finished':1,
+            'default_contract_type': 'sale'}
+        </field>
+        <field name="search_view_id" ref="contract_contract_search_view" />
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Click to create a new contract.
+            </p>
+        </field>
+    </record>
+
+    <menuitem
+        id="menu_partner_record"
+        parent="account.menu_finance_recevaibles"
+        action="action_partner_record"
+        sequence="100"
+    />
+</odoo>

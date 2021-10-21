@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="solidaris_contract_contract_form_view" model="ir.ui.view">
+        <field name="name">contract.contract form view solidaris</field>
+        <field name="model">contract.contract</field>
+        <field name="inherit_id" ref="contract.contract_contract_form_view"/>
+        <field name="arch" type="xml">
+            <field name="partner_id" position="before">
+                <field name="partner_record" attrs="{'readonly': [('is_terminated','=',True)]}"/>
+                <field name="representative_id" readonly="True" />
+            </field>
+        </field>
+    </record>
+</odoo>
