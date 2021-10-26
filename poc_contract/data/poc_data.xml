@@ -10,7 +10,7 @@
             <field name="list_price">1.0</field>
             <field name="standard_price">1.0</field>
             <field name="type">service</field>
-            <field name="default_code">ahi_option_base</field>
+            <field name="default_code">AHI Base</field>
             <field name="categ_id" ref="product_category_insurance"/>
         </record>
 
@@ -19,7 +19,7 @@
             <field name="list_price">1.0</field>
             <field name="standard_price">1.0</field>
             <field name="type">service</field>
-            <field name="default_code">ahi_option_150</field>
+            <field name="default_code">AHI option 150</field>
             <field name="categ_id" ref="product_category_insurance"/>
         </record>
 
@@ -28,7 +28,7 @@
             <field name="list_price">1.0</field>
             <field name="standard_price">1.0</field>
             <field name="type">service</field>
-            <field name="default_code">ahi_option_200</field>
+            <field name="default_code">AHI option 200</field>
             <field name="categ_id" ref="product_category_insurance"/>
         </record>
 
@@ -46,7 +46,7 @@
             <field name="list_price">1.0</field>
             <field name="standard_price">1.0</field>
             <field name="type">service</field>
-            <field name="default_code">LHC</field>
+            <field name="default_code">LCH</field>
             <field name="categ_id" ref="product_category_insurance"/>
         </record>
 
