@@ -1,2 +1,2 @@
 from . import contract
-from . import partner_record
+from . import contract_line

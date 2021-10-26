@@ -45,17 +45,26 @@ class PartnerRecord(models.Model):
         for vals in data_list:
             # create_partner_record
             rec_vals= {}
+            date_start = vals.get('date_start')
+            date_end = vals.get('date_end')
+            rec_vals['date_start'] = date_start
+            rec_vals['date_end'] = date_end
             rec_vals['name'] = vals.get('name')
             rec_vals['structured_comm'] = vals.get('structured_comm')
             rec_vals['payment_mode'] = vals.get('payment_mode')
             rec_vals['recurring_rule_type'] = vals.get('recurring_rule_type')
-            rec_vals['date_start'] = vals.get('date_start')
-            rec_vals['date_end'] = vals.get('date_end')
             rec_vals['representative_id'] = admin.id
             
             record_id = self.create(rec_vals)
+            contract_vals = {
+                'record_id': record_id,
+                'date_start': date_start,
+                'date_end': date_end,
+                
+            }
+            contract
             for contract in vals.get('contracts'):
-                print(contract)
+                contract[]
             # loop create contract
             # create first invoice
         return True
