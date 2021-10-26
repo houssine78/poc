@@ -13,11 +13,9 @@
         'contract',
     ],
     'data': [
-#        "security/ir.model.access.csv",
         "data/poc_data.xml",
         "views/contract_views.xml",
         "views/contract_line.xml",
-#        "views/partner_record_views.xml"
     ],
     'installable': True,
 }
