@@ -6,11 +6,12 @@
         <field name="inherit_id" ref="contract.contract_contract_form_view"/>
         <field name="arch" type="xml">
             <field name="partner_id" position="before">
-                <!-- <field name="record_id" attrs="{'readonly': [('is_terminated','=',True)]}"/>
-                <field name="representative_id" readonly="True" -->
                 <field name="recurring_rule_type" />
                 <field name="payment_mode" />
                 <field name="structured_comm" />
+            </field>
+            <field name="product_id" position="after">
+                <field name="contract_ref" />
             </field>
         </field>
     </record>

@@ -6,9 +6,11 @@ from odoo import fields, models
 class ContractLine(models.Model):
     _inherit = "contract.line"
 
+    contract_ref = fields.Char(string="Contract reference")
     annual_amount = fields.Float()
     annual_amount_texcl = fields.Float()
     tax = fields.Float()
+    tax_amount = fields.Float()
     recurring_tax = fields.Float()
     recurring_delta_texcl = fields.Float()
     recurring_delta = fields.Float()
