@@ -9,6 +9,7 @@
                 <field name="annual_amount"/>
                 <field name="annual_amount_texcl"/>
                 <field name="tax"/>
+                <field name="tax_amount"/>
                 <field name="recurring_tax"/>
                 <field name="recurring_delta_texcl"/>
                 <field name="recurring_delta"/>
