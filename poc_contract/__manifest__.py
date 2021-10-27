@@ -2,8 +2,8 @@
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
 
 {
-    'name': 'Solidaris Contract',
-    'version': '14.0.1.0.1',
+    'name': 'POC Contract',
+    'version': '14.0.1.0.2',
     'author': 'Eezee-It',
     'website': 'http://www.eezee-it.com',
     'category': 'Account',

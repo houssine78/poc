@@ -39,6 +39,44 @@ class ContractContract(models.Model):
             period = "year"
         return period
 
+    def _prepare_first_invoices_values(self, dates, ratio, date_ref=False):
+        """
+        This method builds the list of invoices values to create, based on
+        the lines to invoice of the contracts in self.
+        :return: list of dictionaries (invoices values)
+        """
+        invoices_values = []
+        for contract in self:
+            if not date_ref:
+                date_ref = contract.recurring_next_date
+            if not date_ref:
+                # this use case is possible when recurring_create_invoice is
+                # called for a finished contract
+                continue
+            contract_lines = contract._get_lines_to_invoice(date_ref)
+            if not contract_lines:
+                continue
+            invoice_vals, move_form = contract._prepare_invoice(date_ref)
+            invoice_vals["invoice_line_ids"] = []
+            for line in contract_lines:
+                invoice_line_vals = line._prepare_first_invoice_line(dates, ratio, move_form=move_form)
+                if invoice_line_vals:
+                    # Allow extension modules to return an empty dictionary for
+                    # nullifying line. We should then cleanup certain values.
+                    del invoice_line_vals["company_id"]
+                    del invoice_line_vals["company_currency_id"]
+                    invoice_vals["invoice_line_ids"].append((0, 0, invoice_line_vals))
+            invoices_values.append(invoice_vals)
+            # Force the recomputation of journal items
+            del invoice_vals["line_ids"]
+        return invoices_values
+
+    def _create_first_invoice(self, dates, ratio, date_ref=False):
+        invoices_values = self._prepare_first_invoices_values(dates, ratio, date_ref)
+        moves = self.env["account.move"].create(invoices_values)
+        self._invoice_followers(moves)
+        return moves
+
     @api.model
     def next_period_first_day(self, period):
         next_period = self.date_start + self.get_relative_delta(self.recurring_rule_type, 1)
@@ -47,25 +85,40 @@ class ContractContract(models.Model):
     @api.model
     def first_invoicing(self):
         # find next period based on the recurrency
-        if self.date_start != self.recurring_next_date:
-            return False
+        date_start = self.date_start
+        date_next_period = date_start + self.get_relative_delta(self.recurring_rule_type, 1)
         period = self.get_period_from_contract()
         next_period_fd = self.next_period_first_day(period)
-        date_next_period = self.date_start + self.get_relative_delta(self.recurring_rule_type, 1)
-        if date_next_period == next_period_fd:
-            return False
+        next_period_ld = date_utils.end_of(next_period_fd, period)
 
-        # compute delta between start date and next period
-        start_period = date_utils.start_of(self.date_start, period)
-        delta_period = (next_period_fd - start_period).days
-        delta = (next_period_fd - self.date_start).days
-        # compute pro-rata amount for contract lines based on delta
-        return delta
+        # compute pro-rata ratio for contract lines
+        if date_start != self.recurring_next_date or date_next_period == next_period_fd:
+            ratio = 1
+        else:
+            # compute delta between start date and next period
+            start_period = date_utils.start_of(date_start, period)
+            delta_period = (next_period_fd - start_period).days
+            delta_start_date = (next_period_fd - date_start).days
+            ratio = delta_start_date / delta_period
+        dates = [date_start, next_period_fd - relativedelta(days=1)]
+        # create first invoice
+        invoice = self._create_first_invoice(dates, ratio, fields.Date.today())
+
+        self.recurring_next_date = next_period_fd
+        lines_vals = {
+            'next_period_date_start': next_period_fd,
+            'next_period_date_end': next_period_ld,
+            'recurring_next_date': next_period_fd
+        }
+        self.contract_line_ids.write(lines_vals)
+        
+        return invoice
 
     @api.model
     def new_contract(self, data_list):
         admin = self.env['res.users'].search([('login', '=', 'admin')], limit=1)
         product_obj = self.env['product.product']
+        line_obj = self.env['contract.line']
 
         for vals in data_list:
             # contract
@@ -85,13 +138,14 @@ class ContractContract(models.Model):
                 'contract_id': contract_id.id,
                 'date_start': date_start,
                 'date_end': date_end,
-                'is_auto_renew': True
+                'is_auto_renew': True,
+                'recurring_rule_type': vals.get('recurring_rule_type')
             }
             for contract in vals.get('contracts'):
                 insurance = contract.get('insurance')
                 product = product_obj.search([('default_code', '=', insurance)])
                 line_vals['product_id'] = product.id
-                line_vals['name'] = 'lala'
+                line_vals['name'] = 'from #START# to #END#'
                 line_vals['contract_ref'] = contract.get('contract_ref')
                 line_vals['tax'] = contract.get('tax')
                 line_vals['annual_amount'] = contract.get('annual_amount')
@@ -102,7 +156,8 @@ class ContractContract(models.Model):
                 line_vals['recurring_delta_texcl'] = contract.get('recurring_delta_texcl')
                 line_vals['recurring_delta'] = contract.get('recurring_delta')
                 line_vals['total_delta'] = contract.get('total_delta')
-                self.env['contract.line'].create(line_vals)
-            contract_id.first_invoicing()
+                line_obj.create(line_vals)
             # create first invoice
+            contract_id.first_invoicing()
+
         return True
