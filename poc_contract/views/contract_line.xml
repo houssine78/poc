@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="poc_contract_line_form_view" model="ir.ui.view">
+        <field name="name">contract.line form view (in contract)</field>
+        <field name="model">contract.line</field>
+        <field name="inherit_id" ref="contract.contract_line_form_view" />
+        <field name="arch" type="xml">
+            <field name="next_period_date_end" position="after">
+                <field name="annual_amount"/>
+                <field name="annual_amount_texcl"/>
+                <field name="tax"/>
+                <field name="tax_amount"/>
+                <field name="recurring_tax"/>
+                <field name="recurring_delta_texcl"/>
+                <field name="recurring_delta"/>
+                <field name="total_delta"/>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,76 @@
+<odoo>
+    <data noupdate="0">
+	    <record id="product_category_insurance" model="product.category">
+	        <field name="parent_id" ref="product.product_category_all"/>
+	        <field name="name">Insurance</field>
+	    </record>
+
+        <record id="insurance_ahi_base" model="product.product">
+            <field name="name">Insurance AHI Base</field>
+            <field name="list_price">1.0</field>
+            <field name="standard_price">1.0</field>
+            <field name="type">service</field>
+            <field name="default_code">AHI Base</field>
+            <field name="categ_id" ref="product_category_insurance"/>
+        </record>
+
+        <record id="insurance_ahi_option_150" model="product.product">
+            <field name="name">Insurance AHI option 150</field>
+            <field name="list_price">1.0</field>
+            <field name="standard_price">1.0</field>
+            <field name="type">service</field>
+            <field name="default_code">AHI option 150</field>
+            <field name="categ_id" ref="product_category_insurance"/>
+        </record>
+
+        <record id="insurance_ahi_option_200" model="product.product">
+            <field name="name">Insurance AHI option 200</field>
+            <field name="list_price">1.0</field>
+            <field name="standard_price">1.0</field>
+            <field name="type">service</field>
+            <field name="default_code">AHI option 200</field>
+            <field name="categ_id" ref="product_category_insurance"/>
+        </record>
+
+        <record id="insurance_mg" model="product.product">
+            <field name="name">Insurance MG</field>
+            <field name="list_price">1.0</field>
+            <field name="standard_price">1.0</field>
+            <field name="type">service</field>
+            <field name="default_code">MG</field>
+            <field name="categ_id" ref="product_category_insurance"/>
+        </record>
+
+        <record id="insurance_lch" model="product.product">
+            <field name="name">Insurance LCH</field>
+            <field name="list_price">1.0</field>
+            <field name="standard_price">1.0</field>
+            <field name="type">service</field>
+            <field name="default_code">LCH</field>
+            <field name="categ_id" ref="product_category_insurance"/>
+        </record>
+
+        <record id="TAX-OUT-10-S" model="account.tax.template">
+            <field name="sequence">12</field>
+            <field name="description">TAX 10%</field>
+            <field name="name">10%</field>
+            <field name="price_include" eval="0"/>
+            <field name="amount">10</field>
+            <field name="amount_type">percent</field>
+            <field name="type_tax_use">sale</field>
+            <field name="active" eval="True"/>
+            <field name="chart_template_id" ref="l10n_be.l10nbe_chart_template"/>
+        </record>
+        <record id="TAX-OUT-9-5-S" model="account.tax.template">
+            <field name="sequence">15</field>
+            <field name="description">TAX 9,5%</field>
+            <field name="name">9,5%</field>
+            <field name="price_include" eval="0"/>
+            <field name="amount">9.5</field>
+            <field name="amount_type">percent</field>
+            <field name="type_tax_use">sale</field>
+            <field name="active" eval="True"/>
+            <field name="chart_template_id" ref="l10n_be.l10nbe_chart_template"/>
+        </record>
+    </data>
+</odoo>
