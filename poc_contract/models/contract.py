@@ -115,49 +115,92 @@ class ContractContract(models.Model):
         return invoice
 
     @api.model
+    def create_bank(self, data_list):
+        bank_obj = self.env['res.bank']
+        bank_obj.create({'name': 'Fortis Bank SA/NV', 'bic': 'GEBABEBB'})
+        bank_obj.create({'name': 'ING Belgium SA/NV', 'bic': 'BBRUBEBB'})
+        bank_obj.create({'name': 'KBC BANK NV', 'bic': 'KREDBEBB'})
+        bank_obj.create({'name': 'COMPAGNIE MONEGASQUE DE BANQUE S.A.M', 'bic': 'CMBMMCMXXXX'})
+        return True
+
+    @api.model
     def new_contract(self, data_list):
-        admin = self.env['res.users'].search([('login', '=', 'admin')], limit=1)
         product_obj = self.env['product.product']
         line_obj = self.env['contract.line']
+        partner_obj = self.env['res.partner']
+        partner_bank_obj = self.env['res.partner.bank']
+        bank_obj = self.env['res.bank']
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
 
         for vals in data_list:
             # contract
             contract_vals= {}
+            partner_vals = {}
+            partner_bank_vals = {}
+            
+            # create partner
+            partner_vals['name'] = vals.get('partner_name')
+            partner_vals['ref'] = vals.get('structured_comm')[:-2]
+            partner_vals['customer_rank'] = 1
+            partner = partner_obj.create(partner_vals)
+            bank = bank_obj.search([('bic', '=', vals.get('partner_bic'))], limit=1)
+
+            # create bank partner
+            partner_bank_vals['partner_id'] = partner.id
+            partner_bank_vals['acc_number'] = vals.get('partner_bank')
+            partner_bank_vals['bank_id'] = bank.id
+            partner_bank = partner_bank_obj.create(partner_bank_vals)
+            
+            # contract
             date_start = vals.get('date_start')
             date_end = vals.get('date_end')
+            request_date = vals.get('date_request')
             contract_vals['date_start'] = date_start
             contract_vals['date_end'] = date_end
             contract_vals['name'] = vals.get('name')
             contract_vals['structured_comm'] = vals.get('structured_comm')
             contract_vals['payment_mode'] = vals.get('payment_mode')
             contract_vals['recurring_rule_type'] = vals.get('recurring_rule_type')
-            contract_vals['partner_id'] = admin.id
+            contract_vals['partner_id'] = partner.id
 
-            contract_id = self.create(contract_vals)
+            contract = self.create(contract_vals)
             line_vals = {
-                'contract_id': contract_id.id,
+                'contract_id': contract.id,
                 'date_start': date_start,
                 'date_end': date_end,
                 'is_auto_renew': True,
                 'recurring_rule_type': vals.get('recurring_rule_type')
             }
-            for contract in vals.get('contracts'):
-                insurance = contract.get('insurance')
+            for contract_vals in vals.get('contracts'):
+                insurance = contract_vals.get('insurance')
                 product = product_obj.search([('default_code', '=', insurance)])
                 line_vals['product_id'] = product.id
                 line_vals['name'] = 'from #START# to #END#'
-                line_vals['contract_ref'] = contract.get('contract_ref')
-                line_vals['tax'] = contract.get('tax')
-                line_vals['annual_amount'] = contract.get('annual_amount')
-                line_vals['annual_amount_texcl'] = contract.get('annual_amount_texcl')
-                line_vals['tax_amount'] = contract.get('tax_amount')
-                line_vals['price_unit'] = contract.get('recurring_amount')
-                line_vals['recurring_tax'] = contract.get('recurring_tax')
-                line_vals['recurring_delta_texcl'] = contract.get('recurring_delta_texcl')
-                line_vals['recurring_delta'] = contract.get('recurring_delta')
-                line_vals['total_delta'] = contract.get('total_delta')
+                line_vals['contract_ref'] = contract_vals.get('contract_ref')
+                line_vals['tax'] = contract_vals.get('tax')
+                line_vals['annual_amount'] = contract_vals.get('annual_amount')
+                line_vals['annual_amount_texcl'] = contract_vals.get('annual_amount_texcl')
+                line_vals['tax_amount'] = contract_vals.get('tax_amount')
+                line_vals['price_unit'] = contract_vals.get('recurring_amount')
+                line_vals['recurring_tax'] = contract_vals.get('recurring_tax')
+                line_vals['recurring_delta_texcl'] = contract_vals.get('recurring_delta_texcl')
+                line_vals['recurring_delta'] = contract_vals.get('recurring_delta')
+                line_vals['total_delta'] = contract_vals.get('total_delta')
                 line_obj.create(line_vals)
+            
+            if contract.payment_mode == 'mandate':
+                # create sepa debit mandate
+                mandate_vals = {}
+                mandate_vals['partner_id'] = partner.id
+                mandate_vals['partner_bank_id'] = partner_bank.id
+                mandate_vals['payment_journal_id'] = bank_journal.id
+                mandate_vals['start_date'] = request_date
+                mandate = self.env['sdd.mandate'].create(mandate_vals)
+                mandate.action_validate_mandate()
+                
             # create first invoice
-            contract_id.first_invoicing()
+            invoice = contract.first_invoicing()
+            invoice.invoice_date = request_date
+            invoice.action_post()
 
         return True

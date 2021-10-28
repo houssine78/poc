@@ -13,6 +13,7 @@
         'account_accountant',
         'l10n_be',
         'contract',
+        'account_sepa',
         'account_sepa_direct_debit'
     ],
     'data': [
