@@ -10,8 +10,8 @@ uid = common.authenticate(db, username, password, {})
 models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
 ids = models.execute_kw(db, uid, password, 'contract.contract', 'request_payment', [[
     {
-        'request_date': '2021-01-10',
-        'reference_date': '2021-01-01'
+        'request_date': '2021-02-10',
+        'reference_date': '2021-02-01'
     }
 ]])
 print(common.version())
