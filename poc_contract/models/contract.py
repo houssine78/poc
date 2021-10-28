@@ -207,23 +207,38 @@ class ContractContract(models.Model):
 
     @api.model
     def request_payment(self, data_list):
+        wiz_obj = self.env['account.payment.register']
+        batch_obj = self.env['account.batch.payment']
+
         payment_method = self.env['account.payment.method'].search([('code', '=', 'sdd')], limit=1)
         bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
-        ctx = {'active_model': 'account.move'}
-                
-        wiz_obj = self.env['account.payment.register']
         contracts = self.env['contract.contract'].search([('payment_mode', '=', 'mandate')])
+
+        ctx = {'active_model': 'account.move'}
+        request_date = data_list[0].get('request_date')
+        reference_date = fields.Date().to_date(data_list[0].get('reference_date'))
+        payments = []
+        
         for contract in contracts:
             invoices = (self.env["account.move.line"].search([("contract_line_id", "in", contract.contract_line_ids.ids)]).mapped("move_id"))
-            not_paid_inv = invoices.filtered(lambda l: l.payment_state == 'not_paid')
+            not_paid_inv = invoices.filtered(lambda l: l.payment_state == 'not_paid' and l.invoice_date <= reference_date)
             for inv in not_paid_inv:
                 pay_vals = {}
                 pay_vals['payment_method_id'] = payment_method.id
                 pay_vals['journal_id'] = bank_journal.id
-                pay_vals['payment_date'] = inv.invoice_date
+                pay_vals['payment_date'] = request_date
                 
                 ctx['active_ids']= inv.id
                 wizard = wiz_obj.with_context(ctx).create(pay_vals)
-                wizard.action_create_payments()
-                print(wizard)
+                payment = wizard.create_payments()
+                payments.append(payment.id)
+        batch_vals = {}
+        batch_vals['journal_id'] = bank_journal.id
+        batch_vals['payment_method_id'] = payment_method.id
+        batch_vals['date'] = request_date
+
+        batch = batch_obj.create(batch_vals)
+        batch.write({'payment_ids': [(6, 0, payments)]})
+        batch.validate_batch()
+
         return True
