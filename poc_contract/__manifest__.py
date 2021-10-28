@@ -9,8 +9,11 @@
     'category': 'Account',
     'license': 'LGPL-3',
     'depends': [
+        'contacts',
+        'account_accountant',
         'l10n_be',
         'contract',
+        'account_sepa_direct_debit'
     ],
     'data': [
         "data/poc_data.xml",
