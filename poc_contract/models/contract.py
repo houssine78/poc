@@ -204,3 +204,26 @@ class ContractContract(models.Model):
             invoice.action_post()
 
         return True
+
+    @api.model
+    def request_payment(self, data_list):
+        payment_method = self.env['account.payment.method'].search([('code', '=', 'sdd')], limit=1)
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+        ctx = {'active_model': 'account.move'}
+                
+        wiz_obj = self.env['account.payment.register']
+        contracts = self.env['contract.contract'].search([('payment_mode', '=', 'mandate')])
+        for contract in contracts:
+            invoices = (self.env["account.move.line"].search([("contract_line_id", "in", contract.contract_line_ids.ids)]).mapped("move_id"))
+            not_paid_inv = invoices.filtered(lambda l: l.payment_state == 'not_paid')
+            for inv in not_paid_inv:
+                pay_vals = {}
+                pay_vals['payment_method_id'] = payment_method.id
+                pay_vals['journal_id'] = bank_journal.id
+                pay_vals['payment_date'] = inv.invoice_date
+                
+                ctx['active_ids']= inv.id
+                wizard = wiz_obj.with_context(ctx).create(pay_vals)
+                wizard.action_create_payments()
+                print(wizard)
+        return True
