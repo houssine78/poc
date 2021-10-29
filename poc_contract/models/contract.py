@@ -268,3 +268,13 @@ class ContractContract(models.Model):
                 stat_line_obj.create(line_vals)
             statement.button_post()
         return True
+
+    @api.model
+    def run_contract_invoicing(self, data_list):
+        contract_obj = self.env['contract.contract']
+        
+        for vals in data_list:
+            contract = contract_obj.search([('name', '=', vals.get('contract'))])
+            contract.recurring_create_invoice()
+
+        return True
