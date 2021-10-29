@@ -109,7 +109,7 @@ class ContractContract(models.Model):
             'next_period_date_start': next_period_fd,
             'next_period_date_end': next_period_ld,
             'recurring_next_date': next_period_fd,
-            'last_date_invoiced': request_date
+            #'last_date_invoiced': request_date
         }
         self.contract_line_ids.write(lines_vals)
         
