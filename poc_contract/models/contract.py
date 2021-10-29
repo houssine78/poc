@@ -242,3 +242,29 @@ class ContractContract(models.Model):
         batch.validate_batch()
 
         return True
+
+    @api.model
+    def import_bank_statement(self, data_list):
+        stat_obj = self.env['account.bank.statement']
+        stat_line_obj = self.env['account.bank.statement.line']
+
+
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+        
+        for vals in data_list:
+            stat_vals = {}
+            stat_vals['name'] = vals.get('name')
+            stat_vals['journal_id'] = bank_journal.id
+            stat_vals['date'] = vals.get('date')
+            stat_vals['balance_start'] = vals.get('balance_start')
+            stat_vals['balance_end_real'] = vals.get('balance_end_real')
+            statement = stat_obj.create(stat_vals)
+            line_vals = {'statement_id': statement.id}
+            for line in vals.get('lines'):
+                line_vals['date'] = line.get('date')
+                line_vals['payment_ref'] = line.get('payment_ref')
+                line_vals['amount'] = line.get('amount')
+                line_vals['account_number'] = line.get('account_number')
+                stat_line_obj.create(line_vals)
+            statement.button_post()
+        return True
