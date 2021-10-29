@@ -83,7 +83,7 @@ class ContractContract(models.Model):
         return date_utils.start_of(next_period, period)
 
     @api.model
-    def first_invoicing(self):
+    def first_invoicing(self, request_date):
         # find next period based on the recurrency
         date_start = self.date_start
         date_next_period = date_start + self.get_relative_delta(self.recurring_rule_type, 1)
@@ -108,56 +108,213 @@ class ContractContract(models.Model):
         lines_vals = {
             'next_period_date_start': next_period_fd,
             'next_period_date_end': next_period_ld,
-            'recurring_next_date': next_period_fd
+            'recurring_next_date': next_period_fd,
+            'last_date_invoiced': request_date
         }
         self.contract_line_ids.write(lines_vals)
         
         return invoice
 
     @api.model
+    def create_bank(self, data_list):
+        bank_obj = self.env['res.bank']
+        bank_obj.create({'name': 'Fortis Bank SA/NV', 'bic': 'GEBABEBB'})
+        bank_obj.create({'name': 'ING Belgium SA/NV', 'bic': 'BBRUBEBB'})
+        bank_obj.create({'name': 'KBC BANK NV', 'bic': 'KREDBEBB'})
+        bank_obj.create({'name': 'COMPAGNIE MONEGASQUE DE BANQUE S.A.M', 'bic': 'CMBMMCMXXXX'})
+        return True
+
+    @api.model
     def new_contract(self, data_list):
-        admin = self.env['res.users'].search([('login', '=', 'admin')], limit=1)
         product_obj = self.env['product.product']
         line_obj = self.env['contract.line']
+        partner_obj = self.env['res.partner']
+        partner_bank_obj = self.env['res.partner.bank']
+        bank_obj = self.env['res.bank']
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
 
         for vals in data_list:
             # contract
             contract_vals= {}
+            partner_vals = {}
+            partner_bank_vals = {}
+            
+            # create partner
+            partner_vals['name'] = vals.get('partner_name')
+            partner_vals['ref'] = vals.get('structured_comm')[:-2]
+            partner_vals['customer_rank'] = 1
+            partner = partner_obj.create(partner_vals)
+            bank = bank_obj.search([('bic', '=', vals.get('partner_bic'))], limit=1)
+
+            # create bank partner
+            partner_bank_vals['partner_id'] = partner.id
+            partner_bank_vals['acc_number'] = vals.get('partner_bank')
+            partner_bank_vals['bank_id'] = bank.id
+            partner_bank = partner_bank_obj.create(partner_bank_vals)
+            
+            # contract
             date_start = vals.get('date_start')
             date_end = vals.get('date_end')
+            request_date = vals.get('date_request')
             contract_vals['date_start'] = date_start
             contract_vals['date_end'] = date_end
             contract_vals['name'] = vals.get('name')
             contract_vals['structured_comm'] = vals.get('structured_comm')
             contract_vals['payment_mode'] = vals.get('payment_mode')
             contract_vals['recurring_rule_type'] = vals.get('recurring_rule_type')
-            contract_vals['partner_id'] = admin.id
+            contract_vals['partner_id'] = partner.id
 
-            contract_id = self.create(contract_vals)
+            contract = self.create(contract_vals)
             line_vals = {
-                'contract_id': contract_id.id,
+                'contract_id': contract.id,
                 'date_start': date_start,
                 'date_end': date_end,
                 'is_auto_renew': True,
                 'recurring_rule_type': vals.get('recurring_rule_type')
             }
-            for contract in vals.get('contracts'):
-                insurance = contract.get('insurance')
+            for contract_vals in vals.get('contracts'):
+                insurance = contract_vals.get('insurance')
                 product = product_obj.search([('default_code', '=', insurance)])
                 line_vals['product_id'] = product.id
                 line_vals['name'] = 'from #START# to #END#'
-                line_vals['contract_ref'] = contract.get('contract_ref')
-                line_vals['tax'] = contract.get('tax')
-                line_vals['annual_amount'] = contract.get('annual_amount')
-                line_vals['annual_amount_texcl'] = contract.get('annual_amount_texcl')
-                line_vals['tax_amount'] = contract.get('tax_amount')
-                line_vals['price_unit'] = contract.get('recurring_amount')
-                line_vals['recurring_tax'] = contract.get('recurring_tax')
-                line_vals['recurring_delta_texcl'] = contract.get('recurring_delta_texcl')
-                line_vals['recurring_delta'] = contract.get('recurring_delta')
-                line_vals['total_delta'] = contract.get('total_delta')
+                line_vals['contract_ref'] = contract_vals.get('contract_ref')
+                line_vals['tax'] = contract_vals.get('tax')
+                line_vals['annual_amount'] = contract_vals.get('annual_amount')
+                line_vals['annual_amount_texcl'] = contract_vals.get('annual_amount_texcl')
+                line_vals['tax_amount'] = contract_vals.get('tax_amount')
+                line_vals['price_unit'] = contract_vals.get('recurring_amount')
+                line_vals['recurring_tax'] = contract_vals.get('recurring_tax')
+                line_vals['recurring_delta_texcl'] = contract_vals.get('recurring_delta_texcl')
+                line_vals['recurring_delta'] = contract_vals.get('recurring_delta')
+                line_vals['total_delta'] = contract_vals.get('total_delta')
                 line_obj.create(line_vals)
+            
+            if contract.payment_mode == 'mandate':
+                # create sepa debit mandate
+                mandate_vals = {}
+                mandate_vals['partner_id'] = partner.id
+                mandate_vals['partner_bank_id'] = partner_bank.id
+                mandate_vals['payment_journal_id'] = bank_journal.id
+                mandate_vals['start_date'] = request_date
+                mandate = self.env['sdd.mandate'].create(mandate_vals)
+                mandate.action_validate_mandate()
+                
             # create first invoice
-            contract_id.first_invoicing()
+            invoice = contract.first_invoicing(request_date)
+            invoice.invoice_date = request_date
+            invoice.action_post()
+
+        return True
+
+    @api.model
+    def request_payment(self, data_list):
+        wiz_obj = self.env['account.payment.register']
+        batch_obj = self.env['account.batch.payment']
+
+        payment_method = self.env['account.payment.method'].search([('code', '=', 'sdd')], limit=1)
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+        contracts = self.env['contract.contract'].search([('payment_mode', '=', 'mandate')])
+
+        ctx = {'active_model': 'account.move'}
+        request_date = data_list[0].get('request_date')
+        reference_date = fields.Date().to_date(data_list[0].get('reference_date'))
+        payments = []
+        
+        for contract in contracts:
+            invoices = (self.env["account.move.line"].search([("contract_line_id", "in", contract.contract_line_ids.ids)]).mapped("move_id"))
+            not_paid_inv = invoices.filtered(lambda l: l.payment_state == 'not_paid' and l.invoice_date <= reference_date)
+            for inv in not_paid_inv:
+                pay_vals = {}
+                pay_vals['payment_method_id'] = payment_method.id
+                pay_vals['journal_id'] = bank_journal.id
+                pay_vals['payment_date'] = request_date
+                
+                ctx['active_ids']= inv.id
+                wizard = wiz_obj.with_context(ctx).create(pay_vals)
+                payment = wizard.create_payments()
+                payments.append(payment.id)
+        batch_vals = {}
+        batch_vals['journal_id'] = bank_journal.id
+        batch_vals['payment_method_id'] = payment_method.id
+        batch_vals['date'] = request_date
+
+        batch = batch_obj.create(batch_vals)
+        batch.write({'payment_ids': [(6, 0, payments)]})
+        batch.validate_batch()
+
+        return True
+
+    @api.model
+    def request_payment_out(self, data_list):
+        batch_obj = self.env['account.batch.payment']
+        payment_obj = self.env['account.payment']
+        contract_obj = self.env['contract.contract']
+
+        account = self.env['account.account'].search([('code', '=', '440000')], limit=1)
+        payment_method = self.env['account.payment.method'].search([('code', '=', 'sepa_ct')], limit=1)
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+
+        request_date = data_list[0].get('request_date')
+        payments = []
+        
+        for request_payment in data_list:
+            pay_vals = {}
+            contract = contract_obj.search([('name', '=', request_payment.get('contract'))])
+            pay_vals['partner_id'] = contract.partner_id.id
+            pay_vals['payment_method_id'] = payment_method.id
+            pay_vals['journal_id'] = bank_journal.id
+            pay_vals['date'] = request_payment.get('date_request')
+            pay_vals['payment_type'] = 'outbound'
+            pay_vals['partner_type'] = request_payment.get('partner_type')
+            pay_vals['amount'] = request_payment.get('amount')
+            pay_vals['destination_account_id'] = account.id
+            
+            payment = payment_obj.create(pay_vals)
+            payments.append(payment.id)
+        batch_vals = {}
+        batch_vals['journal_id'] = bank_journal.id
+        batch_vals['payment_method_id'] = payment_method.id
+        batch_vals['date'] = request_payment.get('date_request')
+        batch_vals['batch_type'] = 'outbound'
+
+        batch = batch_obj.create(batch_vals)
+        batch.write({'payment_ids': [(6, 0, payments)]})
+        batch.validate_batch()
+
+        return True
+
+    @api.model
+    def import_bank_statement(self, data_list):
+        stat_obj = self.env['account.bank.statement']
+        stat_line_obj = self.env['account.bank.statement.line']
+
+
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+        
+        for vals in data_list:
+            stat_vals = {}
+            stat_vals['name'] = vals.get('name')
+            stat_vals['journal_id'] = bank_journal.id
+            stat_vals['date'] = vals.get('date')
+            stat_vals['balance_start'] = vals.get('balance_start')
+            stat_vals['balance_end_real'] = vals.get('balance_end_real')
+            statement = stat_obj.create(stat_vals)
+            line_vals = {'statement_id': statement.id}
+            for line in vals.get('lines'):
+                line_vals['date'] = line.get('date')
+                line_vals['payment_ref'] = line.get('payment_ref')
+                line_vals['amount'] = line.get('amount')
+                line_vals['account_number'] = line.get('account_number')
+                stat_line_obj.create(line_vals)
+            statement.button_post()
+        return True
+
+    @api.model
+    def run_contract_invoicing(self, data_list):
+        contract_obj = self.env['contract.contract']
+        
+        for vals in data_list:
+            contract = contract_obj.search([('name', '=', vals.get('contract'))])
+            contract.recurring_create_invoice()
 
         return True

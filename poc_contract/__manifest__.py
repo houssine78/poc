@@ -3,7 +3,7 @@
 
 {
     'name': 'POC Contract',
-    'version': '14.0.1.0.2',
+    'version': '14.0.1.0.6',
     'author': 'Eezee-It',
     'website': 'http://www.eezee-it.com',
     'category': 'Account',
@@ -13,6 +13,7 @@
         'account_accountant',
         'l10n_be',
         'contract',
+        'account_sepa',
         'account_sepa_direct_debit'
     ],
     'data': [
