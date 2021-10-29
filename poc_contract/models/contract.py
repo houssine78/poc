@@ -83,7 +83,7 @@ class ContractContract(models.Model):
         return date_utils.start_of(next_period, period)
 
     @api.model
-    def first_invoicing(self):
+    def first_invoicing(self, request_date):
         # find next period based on the recurrency
         date_start = self.date_start
         date_next_period = date_start + self.get_relative_delta(self.recurring_rule_type, 1)
@@ -108,7 +108,8 @@ class ContractContract(models.Model):
         lines_vals = {
             'next_period_date_start': next_period_fd,
             'next_period_date_end': next_period_ld,
-            'recurring_next_date': next_period_fd
+            'recurring_next_date': next_period_fd,
+            'last_date_invoiced': request_date
         }
         self.contract_line_ids.write(lines_vals)
         
@@ -199,7 +200,7 @@ class ContractContract(models.Model):
                 mandate.action_validate_mandate()
                 
             # create first invoice
-            invoice = contract.first_invoicing()
+            invoice = contract.first_invoicing(request_date)
             invoice.invoice_date = request_date
             invoice.action_post()
 

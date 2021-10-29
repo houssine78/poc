@@ -3,7 +3,7 @@
 
 {
     'name': 'POC Contract',
-    'version': '14.0.1.0.5',
+    'version': '14.0.1.0.6',
     'author': 'Eezee-It',
     'website': 'http://www.eezee-it.com',
     'category': 'Account',
