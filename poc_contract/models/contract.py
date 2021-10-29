@@ -244,6 +244,45 @@ class ContractContract(models.Model):
         return True
 
     @api.model
+    def request_payment_out(self, data_list):
+        batch_obj = self.env['account.batch.payment']
+        payment_obj = self.env['account.payment']
+        contract_obj = self.env['contract.contract']
+
+        account = self.env['account.account'].search([('code', '=', '440000')], limit=1)
+        payment_method = self.env['account.payment.method'].search([('code', '=', 'sepa_ct')], limit=1)
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+
+        request_date = data_list[0].get('request_date')
+        payments = []
+        
+        for request_payment in data_list:
+            pay_vals = {}
+            contract = contract_obj.search([('name', '=', request_payment.get('contract'))])
+            pay_vals['partner_id'] = contract.partner_id.id
+            pay_vals['payment_method_id'] = payment_method.id
+            pay_vals['journal_id'] = bank_journal.id
+            pay_vals['date'] = request_payment.get('date_request')
+            pay_vals['payment_type'] = 'outbound'
+            pay_vals['partner_type'] = request_payment.get('partner_type')
+            pay_vals['amount'] = request_payment.get('amount')
+            pay_vals['destination_account_id'] = account.id
+            
+            payment = payment_obj.create(pay_vals)
+            payments.append(payment.id)
+        batch_vals = {}
+        batch_vals['journal_id'] = bank_journal.id
+        batch_vals['payment_method_id'] = payment_method.id
+        batch_vals['date'] = request_payment.get('date_request')
+        batch_vals['batch_type'] = 'outbound'
+
+        batch = batch_obj.create(batch_vals)
+        batch.write({'payment_ids': [(6, 0, payments)]})
+        batch.validate_batch()
+
+        return True
+
+    @api.model
     def import_bank_statement(self, data_list):
         stat_obj = self.env['account.bank.statement']
         stat_line_obj = self.env['account.bank.statement.line']

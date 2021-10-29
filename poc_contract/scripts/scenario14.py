@@ -10,17 +10,17 @@ uid = common.authenticate(db, username, password, {})
 models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
 ids = models.execute_kw(db, uid, password, 'contract.contract', 'import_bank_statement', [[
     {
-    'name': 'ext_002',
-    'date': '2021-02-15',
-    'balance_start': 15.67,
-    'balance_end_real': 90.42,
+    'name': 'ext_003',
+    'date': '2021-03-16',
+    'balance_start': 385.82,
+    'balance_end_real': 402.49,
     'lines':[
         {
-            'date': '2021-02-14',
-            'payment_ref': 'Votre remise de domiciliation en euros (SEPA), total de 2 paiement(s)',
+            'date': '2021-03-14',
+            'payment_ref': '+++770/0000/19934+++ ',
             'transaction_type': 'Simple amount without detailed data: Direct debit (Credit under usual reserve)',
-            'amount': 74.75,
-            'account_number': 'BE20 8681 2345 6756',
+            'amount': 15.67,
+            'account_number': 'FR3217569000501378382981T41',
         }]
     },
 ]])
