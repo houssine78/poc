@@ -233,16 +233,19 @@ class ContractContract(models.Model):
                 wizard = wiz_obj.with_context(ctx).create(pay_vals)
                 payment = wizard.create_payments()
                 payments.append(payment.id)
-        batch_vals = {}
-        batch_vals['journal_id'] = bank_journal.id
-        batch_vals['payment_method_id'] = payment_method.id
-        batch_vals['date'] = request_date
 
-        batch = batch_obj.create(batch_vals)
-        batch.write({'payment_ids': [(6, 0, payments)]})
-        batch.validate_batch()
-
-        return True
+        if payments:
+            batch_vals = {}
+            batch_vals['journal_id'] = bank_journal.id
+            batch_vals['payment_method_id'] = payment_method.id
+            batch_vals['date'] = request_date
+    
+            batch = batch_obj.create(batch_vals)
+            batch.write({'payment_ids': [(6, 0, payments)]})
+            batch.validate_batch()
+            return True
+        else:
+            return "There is nothing to pay"
 
     @api.model
     def request_payment_out(self, data_list):
