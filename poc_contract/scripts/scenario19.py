@@ -12,8 +12,8 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'import_bank_sta
     {
     'name': 'ext_005',
     'date': '2021-04-16',
-    'balance_start': 418.16,
-    'balance_end_real': 522.45,
+    'balance_start': 125.42,
+    'balance_end_real': 229.71,
     'lines':[
         {
             'date': '2021-04-12',
