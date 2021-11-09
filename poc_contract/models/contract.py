@@ -315,6 +315,7 @@ class ContractContract(models.Model):
         
         for vals in data_list:
             contract = contract_obj.search([('name', '=', vals.get('contract'))])
-            contract.recurring_create_invoice()
+            invoice = contract.recurring_create_invoice()
+            invoice.action_post()
 
         return True
