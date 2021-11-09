@@ -82,6 +82,9 @@ class ContractContract(models.Model):
         next_period = self.date_start + self.get_relative_delta(self.recurring_rule_type, 1)
         return date_utils.start_of(next_period, period)
 
+    def diff_month(self, d1, d2):
+        return (d1.year - d2.year) * 12 + d1.month - d2.month
+
     @api.model
     def first_invoicing(self, request_date):
         # find next period based on the recurrency
@@ -97,8 +100,8 @@ class ContractContract(models.Model):
         else:
             # compute delta between start date and next period
             start_period = date_utils.start_of(date_start, period)
-            delta_period = (next_period_fd - start_period).days
-            delta_start_date = (next_period_fd - date_start).days
+            delta_period = self.diff_month(next_period_fd, start_period)
+            delta_start_date = self.diff_month(next_period_fd, date_start)
             ratio = delta_start_date / delta_period
         dates = [date_start, next_period_fd - relativedelta(days=1)]
         # create first invoice
