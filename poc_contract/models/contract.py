@@ -135,6 +135,7 @@ class ContractContract(models.Model):
         partner_bank_obj = self.env['res.partner.bank']
         bank_obj = self.env['res.bank']
         bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+        payment_term = self.env.ref("account_payment_term_30days")
 
         for vals in data_list:
             # contract
@@ -146,6 +147,7 @@ class ContractContract(models.Model):
             partner_vals['name'] = vals.get('partner_name')
             partner_vals['ref'] = vals.get('structured_comm')[:-2]
             partner_vals['customer_rank'] = 1
+            partner_vals['property_payment_term_id'] = payment_term.id
             partner = partner_obj.create(partner_vals)
             bank = bank_obj.search([('bic', '=', vals.get('partner_bic'))], limit=1)
 
@@ -325,3 +327,115 @@ class ContractContract(models.Model):
             invoice.action_post()
 
         return True
+
+    def reverse_invoice(self, move_id, date):
+        wiz_obj = self.env['account.move.reversal']
+        ctx = {
+                'active_model': 'account.move',
+                'active_ids': move_id
+            }
+        cred_note_vals = {
+                'refund_method': 'cancel',
+                'reason': "plan d'appurement",
+                'date_mode': 'custom',
+                'date': date
+            }
+        wizard = wiz_obj.with_context(ctx).create(cred_note_vals)
+        return wizard.reverse_moves()
+
+    def create_invoice(self, contract, data_list):
+        move_obj = self.env['account.move']
+        line_obj = self.env['account.move.line']
+        product_obj = self.env['product.product']
+        account_obj = self.env['account.account']
+        self.env['res.company']
+
+        name = data_list.get('name')
+        date = data_list.get('date')
+        account = account_obj.search([('code', '=', '7000')])
+        invoices = []
+        for vals in data_list.get('invoices'):
+            due_date = vals.get('due_date')
+            inv_vals = {
+                'invoice_date_due': due_date,
+                'partner_id': contract.partner_id.id,
+                'invoice_date': date,
+                'move_type': 'out_invoice'
+            }
+            
+            invoice = move_obj.create(inv_vals)
+            line_vals = {'move_id': invoice.id}
+
+            for line in vals.get('lines'):
+                product = product_obj.search([('default_code', '=', line.get('insurance'))])
+                line_vals['account_id'] = account.id
+                line_vals['quantity'] = 1
+                line_vals['product_uom_id'] = product.uom_id.id
+                line_vals['product_id'] = product.id 
+                line_vals['currency_id'] = contract.currency_id.id
+                line_vals['name'] = name
+                line_vals['discount'] = 0.0
+                line_vals['display_type'] = False
+                move_line = line_obj.new(line_vals)
+                move_line._onchange_product_id()
+                move_line.price_unit = line.get('amount')
+                invoice.invoice_line_ids += move_line
+
+            invoice._move_autocomplete_invoice_lines_values()
+            invoice.action_post()
+            invoices.append(invoice)
+                        
+        return invoices
+
+    @api.model
+    def invoice_clearance(self, data_list):
+        contract_obj = self.env['contract.contract']
+
+        contract_ref = data_list[0].get('name')
+
+        contract = contract_obj.search([('name', '=', contract_ref)])
+        invoices = contract._get_related_invoices()
+        open_invoice = invoices.filtered(lambda inv: inv.state == 'posted' and inv.payment_state == 'not_paid')
+        
+        if len(open_invoice) > 0:
+            date = data_list[0].get('date')
+            self.reverse_invoice(open_invoice.id, date)
+
+            self.create_invoice(contract, data_list[0])
+
+        return True
+        
+    @api.model
+    def get_financial_moves(self, data_list):
+        contract_obj = self.env['contract.contract']
+        report_obj = self.env['account.partner.ledger']
+
+        for vals in data_list:
+            contract = contract_obj.search([('name', '=', vals.get('contract'))])
+            partner = contract.partner_id
+            options = {
+                'partner': True,
+                'partner_ids': [partner.id],
+                'partner_categories': [], 
+                'unfolded_lines': [],
+                'unfold_all': False,
+                'unreconciled': False,
+                'all_entries': False,
+                'unposted_in_period': True,
+                'date': {
+                    'string': '2021',
+                    'period_type': 'fiscalyear',
+                    'filter': 'this_year',
+                    'mode': 'range',
+                    'strict_range': False,
+                    'date_to': vals.get('date_to'),
+                    'date_from': vals.get('date_from')
+                },
+                'account_type': [
+                     {'id': 'receivable', 'selected': False},
+                     {'id': 'payable', 'selected': False}
+                 ],
+            }
+            res = report_obj._get_lines(options)
+            #res = report_obj.get_xlsx(options)
+        return str(res)
