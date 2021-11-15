@@ -447,7 +447,7 @@ class ContractContract(models.Model):
             # res = report_obj.get_xlsx(options)
         return str(res)
 
-    def _create_invoice(self, name, date, amount, product_ref):
+    def _create_invoice(self, name, date, amount, product_ref, contract_line):
         move_obj = self.env['account.move']
         line_obj = self.env['account.move.line']
         product_obj = self.env['product.product']
@@ -473,6 +473,7 @@ class ContractContract(models.Model):
         line_vals['name'] = name
         line_vals['discount'] = 0.0
         line_vals['display_type'] = False
+        line_vals['contract_line_id'] = contract_line.id
         move_line = line_obj.new(line_vals)
         move_line._onchange_product_id()
         move_line.price_unit = amount
@@ -507,6 +508,11 @@ class ContractContract(models.Model):
                     'price_unit' : contract_line.get('annual_amount_texcl')
                 }
                 line.write(vals)
-        contract._create_invoice(dates, fields.Date.today(), delta_invoicing, product_ref)
+        contract._create_invoice(dates, fields.Date.today(), delta_invoicing, product_ref, line)
         
         return True
+
+    @api.model
+    def end_contract(self, data_list):
+        print('lol')
+
