@@ -11,9 +11,9 @@ models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
 ids = models.execute_kw(db, uid, password, 'contract.contract', 'import_bank_statement', [[
     {
     'name': 'ext_007',
-    'date': '2021-04-16',
-    'balance_start': 579.45,
-    'balance_end_real': 658.84,
+    'date': '2021-04-18',
+    'balance_start': 286.71,
+    'balance_end_real': 366.10,
     'lines':[
         {
             'date': '2021-04-15',

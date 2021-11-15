@@ -50,7 +50,6 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'new_contract', 
         }]
     },
 ]])
-# record = models.execute_kw(db, uid, password, 'contract.contract', 'read', [ids])
 print(common.version())
 print(uid)
 print(ids)

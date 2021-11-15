@@ -28,6 +28,18 @@ class ContractContract(models.Model):
     )
 
     @api.model
+    def get_month_from_contract_period(self):
+        if self.recurring_rule_type == "monthly":
+            months = 1
+        elif self.recurring_rule_type == "quarterly":
+            months = 3
+        elif self.recurring_rule_type == "semesterly":
+            months = 6
+        elif self.recurring_rule_type == "yearly":
+            months = 12
+        return months
+
+    @api.model
     def get_period_from_contract(self):
         if self.recurring_rule_type == "monthly":
             period = "month"
@@ -82,6 +94,9 @@ class ContractContract(models.Model):
         next_period = self.date_start + self.get_relative_delta(self.recurring_rule_type, 1)
         return date_utils.start_of(next_period, period)
 
+    def diff_month(self, d1, d2):
+        return (d1.year - d2.year) * 12 + d1.month - d2.month
+
     @api.model
     def first_invoicing(self, request_date):
         # find next period based on the recurrency
@@ -97,8 +112,8 @@ class ContractContract(models.Model):
         else:
             # compute delta between start date and next period
             start_period = date_utils.start_of(date_start, period)
-            delta_period = (next_period_fd - start_period).days
-            delta_start_date = (next_period_fd - date_start).days
+            delta_period = self.diff_month(next_period_fd, start_period)
+            delta_start_date = self.diff_month(next_period_fd, date_start)
             ratio = delta_start_date / delta_period
         dates = [date_start, next_period_fd - relativedelta(days=1)]
         # create first invoice
@@ -132,6 +147,7 @@ class ContractContract(models.Model):
         partner_bank_obj = self.env['res.partner.bank']
         bank_obj = self.env['res.bank']
         bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+        payment_term = self.env.ref("account.account_payment_term_30days")
 
         for vals in data_list:
             # contract
@@ -143,6 +159,7 @@ class ContractContract(models.Model):
             partner_vals['name'] = vals.get('partner_name')
             partner_vals['ref'] = vals.get('structured_comm')[:-2]
             partner_vals['customer_rank'] = 1
+            partner_vals['property_payment_term_id'] = payment_term.id
             partner = partner_obj.create(partner_vals)
             bank = bank_obj.search([('bic', '=', vals.get('partner_bic'))], limit=1)
 
@@ -233,20 +250,22 @@ class ContractContract(models.Model):
                 wizard = wiz_obj.with_context(ctx).create(pay_vals)
                 payment = wizard.create_payments()
                 payments.append(payment.id)
-        batch_vals = {}
-        batch_vals['journal_id'] = bank_journal.id
-        batch_vals['payment_method_id'] = payment_method.id
-        batch_vals['date'] = request_date
 
-        batch = batch_obj.create(batch_vals)
-        batch.write({'payment_ids': [(6, 0, payments)]})
-        batch.validate_batch()
-
-        return True
+        if payments:
+            batch_vals = {}
+            batch_vals['journal_id'] = bank_journal.id
+            batch_vals['payment_method_id'] = payment_method.id
+            batch_vals['date'] = request_date
+    
+            batch = batch_obj.create(batch_vals)
+            batch.write({'payment_ids': [(6, 0, payments)]})
+            batch.validate_batch()
+            return True
+        else:
+            return "There is nothing to pay"
 
     @api.model
     def request_payment_out(self, data_list):
-        batch_obj = self.env['account.batch.payment']
         payment_obj = self.env['account.payment']
         contract_obj = self.env['contract.contract']
 
@@ -254,9 +273,6 @@ class ContractContract(models.Model):
         payment_method = self.env['account.payment.method'].search([('code', '=', 'sepa_ct')], limit=1)
         bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
 
-        request_date = data_list[0].get('request_date')
-        payments = []
-        
         for request_payment in data_list:
             pay_vals = {}
             contract = contract_obj.search([('name', '=', request_payment.get('contract'))])
@@ -269,16 +285,28 @@ class ContractContract(models.Model):
             pay_vals['amount'] = request_payment.get('amount')
             pay_vals['destination_account_id'] = account.id
             
-            payment = payment_obj.create(pay_vals)
-            payments.append(payment.id)
+            payment_obj.create(pay_vals)
+        
+        return True
+
+    @api.model
+    def batch_payment_out(self, data_list):
+        payment_obj = self.env['account.payment']
+        batch_obj = self.env['account.batch.payment']
+
+        payment_method = self.env['account.payment.method'].search([('code', '=', 'sepa_ct')], limit=1)
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+        domain_filter = [('state', '=', 'draft'), ('is_internal_transfer', '=', False)]
+
         batch_vals = {}
         batch_vals['journal_id'] = bank_journal.id
         batch_vals['payment_method_id'] = payment_method.id
-        batch_vals['date'] = request_payment.get('date_request')
+        batch_vals['date'] = data_list[0].get('date')
         batch_vals['batch_type'] = 'outbound'
-
+        
         batch = batch_obj.create(batch_vals)
-        batch.write({'payment_ids': [(6, 0, payments)]})
+        payments = payment_obj.search(domain_filter)
+        batch.write({'payment_ids': [(6, 0, payments.ids)]})
         batch.validate_batch()
 
         return True
@@ -309,12 +337,224 @@ class ContractContract(models.Model):
             statement.button_post()
         return True
 
+    def update_tax_on_invoice_lines(self, invoice):
+        for line in self:
+            inv_line = invoice.line_ids.filtered(lambda l: l.name == line.product_id.id)
+            
+            
     @api.model
     def run_contract_invoicing(self, data_list):
         contract_obj = self.env['contract.contract']
         
         for vals in data_list:
             contract = contract_obj.search([('name', '=', vals.get('contract'))])
-            contract.recurring_create_invoice()
+            invoice = contract.recurring_create_invoice()
+            #contract.update_tax_on_invoice_lines()
+            invoice.action_post()
 
+        return True
+
+    def reverse_invoice(self, move_id, date):
+        wiz_obj = self.env['account.move.reversal']
+        ctx = {
+                'active_model': 'account.move',
+                'active_ids': move_id
+            }
+        cred_note_vals = {
+                'refund_method': 'cancel',
+                'reason': "plan d'appurement",
+                'date_mode': 'custom',
+                'date': date
+            }
+        wizard = wiz_obj.with_context(ctx).create(cred_note_vals)
+        return wizard.reverse_moves()
+
+    def create_clearance(self, contract, data_list):
+        move_obj = self.env['account.move']
+        line_obj = self.env['account.move.line']
+        product_obj = self.env['product.product']
+        account_obj = self.env['account.account']
+
+        name = data_list.get('name')
+        date = data_list.get('date')
+        account = account_obj.search([('code', '=', '7000')])
+        invoices = []
+        for vals in data_list.get('invoices'):
+            due_date = vals.get('due_date')
+            inv_vals = {
+                'invoice_date_due': due_date,
+                'partner_id': contract.partner_id.id,
+                'invoice_date': date,
+                'move_type': 'out_invoice'
+            }
+            
+            invoice = move_obj.create(inv_vals)
+            line_vals = {'move_id': invoice.id}
+
+            for line in vals.get('lines'):
+                product = product_obj.search([('default_code', '=', line.get('insurance'))])
+                line_vals['account_id'] = account.id
+                line_vals['quantity'] = 1
+                line_vals['product_uom_id'] = product.uom_id.id
+                line_vals['product_id'] = product.id 
+                line_vals['currency_id'] = contract.currency_id.id
+                line_vals['name'] = name
+                line_vals['discount'] = 0.0
+                line_vals['display_type'] = False
+                move_line = line_obj.new(line_vals)
+                move_line._onchange_product_id()
+                move_line.price_unit = line.get('amount')
+                invoice.invoice_line_ids += move_line
+
+            invoice._move_autocomplete_invoice_lines_values()
+            invoice.action_post()
+            invoices.append(invoice)
+                        
+        return invoices
+
+    @api.model
+    def invoice_clearance(self, data_list):
+        contract_obj = self.env['contract.contract']
+
+        contract_ref = data_list[0].get('name')
+
+        contract = contract_obj.search([('name', '=', contract_ref)])
+        invoices = contract._get_related_invoices()
+        open_invoice = invoices.filtered(lambda inv: inv.state == 'posted' and inv.payment_state == 'not_paid')
+        
+        if len(open_invoice) > 0:
+            date = data_list[0].get('date')
+            self.reverse_invoice(open_invoice.id, date)
+
+            self.create_clearance(contract, data_list[0])
+
+        return True
+        
+    @api.model
+    def get_financial_moves(self, data_list):
+        contract_obj = self.env['contract.contract']
+        report_obj = self.env['account.partner.ledger']
+
+        for vals in data_list:
+            contract = contract_obj.search([('name', '=', vals.get('contract'))])
+            partner = contract.partner_id
+            options = {
+                'partner': True,
+                'partner_ids': [partner.id],
+                'partner_categories': [], 
+                'unfolded_lines': [],
+                'unfold_all': False,
+                'unreconciled': False,
+                'all_entries': False,
+                'unposted_in_period': True,
+                'date': {
+                    'string': '2021',
+                    'period_type': 'fiscalyear',
+                    'filter': 'this_year',
+                    'mode': 'range',
+                    'strict_range': False,
+                    'date_to': vals.get('date_to'),
+                    'date_from': vals.get('date_from')
+                },
+                'account_type': [
+                     {'id': 'receivable', 'selected': False},
+                     {'id': 'payable', 'selected': False}
+                 ],
+            }
+            res = report_obj._get_lines(options)
+            # res = report_obj.get_xlsx(options)
+        return str(res)
+
+    def _create_invoice(self, name, date, move_type, amount, product_ref, contract_line, ratio=1):
+        move_obj = self.env['account.move']
+        line_obj = self.env['account.move.line']
+        product_obj = self.env['product.product']
+        account_obj = self.env['account.account']
+        product = product_obj.search([('default_code', '=', product_ref)])
+
+        account = account_obj.search([('code', '=', '7000')])
+
+        inv_vals = {
+            'partner_id': self.partner_id.id,
+            'invoice_date': date,
+            'move_type': move_type
+        }
+        
+        invoice = move_obj.create(inv_vals)
+        line_vals = {'move_id': invoice.id}
+
+        line_vals['account_id'] = account.id
+        line_vals['quantity'] = 1
+        line_vals['product_uom_id'] = product.uom_id.id
+        line_vals['product_id'] = product.id 
+        line_vals['currency_id'] = self.currency_id.id
+        line_vals['name'] = name
+        line_vals['discount'] = 0.0
+        line_vals['display_type'] = False
+        line_vals['contract_line_id'] = contract_line.id
+        move_line = line_obj.new(line_vals)
+        move_line._onchange_product_id()
+        move_line.price_unit = amount * ratio
+        invoice.invoice_line_ids += move_line
+
+        invoice._move_autocomplete_invoice_lines_values()
+        invoice.action_post()
+        return invoice
+
+    @api.model
+    def new_beneficiary(self, data_list):
+        contract_obj = self.env['contract.contract']
+
+        contract_ref = data_list[0].get('name')
+        contract = contract_obj.search([('name', '=', contract_ref)])
+        dates = 'from ' + data_list[0].get('date_start') + ' to ' + data_list[0].get('date_end')
+        delta_invoicing = data_list[0].get('delta_invoicing_texcl')
+        product_ref = False
+        for data in data_list:
+            for contract_line in data.get('contracts'):
+                ref = contract_line.get('contract_ref')
+                product_ref = contract_line.get('insurance')
+                line = contract.contract_line_ids.filtered(lambda l: l.contract_ref == ref)
+                vals = {
+                    'tax': 10,
+                    'annual_amount': contract_line.get('annual_amount'),
+                    'annual_amount_texcl': contract_line.get('annual_amount_texcl'),
+                    'tax_amount': contract_line.get('tax_amount'),
+                    'recurring_tax': contract_line.get('recurring_tax'),
+                    'recurring_delta_texcl': contract_line.get('recurring_delta_texcl'),
+                    'recurring_delta': contract_line.get('recurring_delta'),
+                    'total_delta': contract_line.get('total_delta'),
+                    'price_unit' : contract_line.get('annual_amount_texcl')
+                }
+                line.write(vals)
+        contract._create_invoice(dates, fields.Date.today(), 'out_invoice', delta_invoicing, product_ref, line)
+        
+        return True
+
+    @api.model
+    def last_invoicing_ratio(self, date_stop):
+        months = self.get_month_from_contract_period()
+        period = self.get_period_from_contract()
+        ongoing_period = date_utils.start_of(date_stop, period)
+        month_in_period = date_stop.month - ongoing_period.month
+        ratio = month_in_period / months
+
+        return ratio
+
+    @api.model
+    def end_contract(self, data_list):
+        contract_obj = self.env['contract.contract']
+
+        #termination_reason = self.env.ref("termination_reason", False)
+        termination_reason = self.env['contract.terminate.reason'].search([('name', '=', 'Contract resiliation')])
+
+        contract_ref = data_list[0].get('name')
+        comment  = data_list[0].get('commentaires')
+        date_stop = fields.Date.to_date(data_list[0].get('date_end'))
+
+        contract = contract_obj.search([('name', '=', contract_ref)])
+        contract._terminate_contract(termination_reason, contract, date_stop)
+        ratio = contract.last_invoicing_ratio(date_stop)
+        line = contract.contract_line_ids[0]
+        invoice = contract._create_invoice(contract_ref, fields.Date.today(), 'out_refund', line.price_unit, line.product_id.default_code, line, ratio)
         return True
