@@ -13,10 +13,10 @@
 
         <record id="TAX-OUT-9-5-S" model="account.tax">
             <field name="sequence">15</field>
-            <field name="description">TAX 9,5%</field>
-            <field name="name">9,5%</field>
+            <field name="description">TAX 9,25%</field>
+            <field name="name">9,25%</field>
             <field name="price_include" eval="0"/>
-            <field name="amount">9.5</field>
+            <field name="amount">9.25</field>
             <field name="amount_type">percent</field>
             <field name="type_tax_use">sale</field>
             <field name="active" eval="True"/>
