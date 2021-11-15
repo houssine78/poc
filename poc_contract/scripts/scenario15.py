@@ -20,7 +20,7 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'new_contract', 
     'date_request': '2021-03-18',
     'recurring_rule_type': 'yearly',
     'payment_mode': 'transfer',
-    'total': 232.04,
+    'total': 92.52,
     'contracts':[
         {
             'contract_ref': '000035301',
@@ -37,7 +37,6 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'new_contract', 
         }]
     },
 ]])
-# record = models.execute_kw(db, uid, password, 'contract.contract', 'read', [ids])
 print(common.version())
 print(uid)
 print(ids)
