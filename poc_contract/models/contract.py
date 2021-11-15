@@ -351,12 +351,11 @@ class ContractContract(models.Model):
         wizard = wiz_obj.with_context(ctx).create(cred_note_vals)
         return wizard.reverse_moves()
 
-    def create_invoice(self, contract, data_list):
+    def create_clearance(self, contract, data_list):
         move_obj = self.env['account.move']
         line_obj = self.env['account.move.line']
         product_obj = self.env['product.product']
         account_obj = self.env['account.account']
-        self.env['res.company']
 
         name = data_list.get('name')
         date = data_list.get('date')
@@ -409,7 +408,7 @@ class ContractContract(models.Model):
             date = data_list[0].get('date')
             self.reverse_invoice(open_invoice.id, date)
 
-            self.create_invoice(contract, data_list[0])
+            self.create_clearance(contract, data_list[0])
 
         return True
         
@@ -445,5 +444,69 @@ class ContractContract(models.Model):
                  ],
             }
             res = report_obj._get_lines(options)
-            #res = report_obj.get_xlsx(options)
+            # res = report_obj.get_xlsx(options)
         return str(res)
+
+    def _create_invoice(self, name, date, amount, product_ref):
+        move_obj = self.env['account.move']
+        line_obj = self.env['account.move.line']
+        product_obj = self.env['product.product']
+        account_obj = self.env['account.account']
+        product = product_obj.search([('default_code', '=', product_ref)])
+
+        account = account_obj.search([('code', '=', '7000')])
+
+        inv_vals = {
+            'partner_id': self.partner_id.id,
+            'invoice_date': date,
+            'move_type': 'out_invoice'
+        }
+        
+        invoice = move_obj.create(inv_vals)
+        line_vals = {'move_id': invoice.id}
+
+        line_vals['account_id'] = account.id
+        line_vals['quantity'] = 1
+        line_vals['product_uom_id'] = product.uom_id.id
+        line_vals['product_id'] = product.id 
+        line_vals['currency_id'] = self.currency_id.id
+        line_vals['name'] = name
+        line_vals['discount'] = 0.0
+        line_vals['display_type'] = False
+        move_line = line_obj.new(line_vals)
+        move_line._onchange_product_id()
+        move_line.price_unit = amount
+        invoice.invoice_line_ids += move_line
+
+        invoice._move_autocomplete_invoice_lines_values()
+        invoice.action_post()
+
+    @api.model
+    def new_beneficiary(self, data_list):
+        contract_obj = self.env['contract.contract']
+
+        contract_ref = data_list[0].get('name')
+        contract = contract_obj.search([('name', '=', contract_ref)])
+        dates = 'from ' + data_list[0].get('date_start') + ' to ' + data_list[0].get('date_end')
+        delta_invoicing = data_list[0].get('delta_invoicing_texcl')
+        product_ref = False
+        for data in data_list:
+            for contract_line in data.get('contracts'):
+                ref = contract_line.get('contract_ref')
+                product_ref = contract_line.get('insurance')
+                line = contract.contract_line_ids.filtered(lambda l: l.contract_ref == ref)
+                vals = {
+                    'tax': 10,
+                    'annual_amount': contract_line.get('annual_amount'),
+                    'annual_amount_texcl': contract_line.get('annual_amount_texcl'),
+                    'tax_amount': contract_line.get('tax_amount'),
+                    'recurring_tax': contract_line.get('recurring_tax'),
+                    'recurring_delta_texcl': contract_line.get('recurring_delta_texcl'),
+                    'recurring_delta': contract_line.get('recurring_delta'),
+                    'total_delta': contract_line.get('total_delta'),
+                    'price_unit' : contract_line.get('annual_amount_texcl')
+                }
+                line.write(vals)
+        contract._create_invoice(dates, fields.Date.today(), delta_invoicing, product_ref)
+        
+        return True
