@@ -77,5 +77,9 @@
             <field name="categ_id" ref="product_category_insurance"/>
         </record>
 
+        <record id="termination_reason" model="contract.terminate.reason">
+            <field name="name">Contract resiliation</field>
+            <field name="terminate_comment_required">False</field>
+        </record>
     </data>
 </odoo>
