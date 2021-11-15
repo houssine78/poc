@@ -57,7 +57,7 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'invoice_clearan
                     'contract_ref': '000024201',
                     'insurance': 'AHI option 200',
                     'tax': 10.0,
-                    'amount': 93.64
+                    'amount': 94.49
                     },
                 {
                     'contract_ref': '000024202',
