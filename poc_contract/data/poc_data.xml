@@ -63,7 +63,7 @@
             <field name="standard_price">1.0</field>
             <field name="type">service</field>
             <field name="default_code">MG</field>
-            <field name="taxes_id" search="[('type_tax_use', '=', 'sale'), ('name', '=', '9,5%')]"/>
+            <field name="taxes_id" search="[('type_tax_use', '=', 'sale'), ('name', '=', '9,25%')]"/>
             <field name="categ_id" ref="product_category_insurance"/>
         </record>
 
