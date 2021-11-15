@@ -254,7 +254,6 @@ class ContractContract(models.Model):
 
     @api.model
     def request_payment_out(self, data_list):
-        batch_obj = self.env['account.batch.payment']
         payment_obj = self.env['account.payment']
         contract_obj = self.env['contract.contract']
 
@@ -262,9 +261,6 @@ class ContractContract(models.Model):
         payment_method = self.env['account.payment.method'].search([('code', '=', 'sepa_ct')], limit=1)
         bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
 
-        request_date = data_list[0].get('request_date')
-        payments = []
-        
         for request_payment in data_list:
             pay_vals = {}
             contract = contract_obj.search([('name', '=', request_payment.get('contract'))])
@@ -277,16 +273,28 @@ class ContractContract(models.Model):
             pay_vals['amount'] = request_payment.get('amount')
             pay_vals['destination_account_id'] = account.id
             
-            payment = payment_obj.create(pay_vals)
-            payments.append(payment.id)
+            payment_obj.create(pay_vals)
+        
+        return True
+
+    @api.model
+    def batch_payment_out(self, data_list):
+        payment_obj = self.env['account.payment']
+        batch_obj = self.env['account.batch.payment']
+
+        payment_method = self.env['account.payment.method'].search([('code', '=', 'sepa_ct')], limit=1)
+        bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
+        domain_filter = [('state', '=', 'draft'), ('partner_type', '=', 'supplier'), ('is_internal_transfer', '=', False)]
+
         batch_vals = {}
         batch_vals['journal_id'] = bank_journal.id
         batch_vals['payment_method_id'] = payment_method.id
-        batch_vals['date'] = request_payment.get('date_request')
+        batch_vals['date'] = data_list[0].get('date')
         batch_vals['batch_type'] = 'outbound'
-
+        
         batch = batch_obj.create(batch_vals)
-        batch.write({'payment_ids': [(6, 0, payments)]})
+        payments = payment_obj.search(domain_filter)
+        batch.write({'payment_ids': [(6, 0, payments.ids)]})
         batch.validate_batch()
 
         return True
