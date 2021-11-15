@@ -20,13 +20,13 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'invoice_clearan
                 {
                     'contract_ref': '000024201',
                     'insurance': 'AHI option 200',
-                    'tax': 10.0,
+                    'tax': '10%',
                     'amount': 93.64
                     },
                 {
                     'contract_ref': '000024202',
                     'insurance': 'MG',
-                    'tax': 9.25,
+                    'tax': '9,25%',
                     'amount': 4.57
                 }
             ]
@@ -38,13 +38,13 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'invoice_clearan
                 {
                     'contract_ref': '000024201',
                     'insurance': 'AHI option 200',
-                    'tax': 10.0,
+                    'tax': '10%',
                     'amount': 93.64
                     },
                 {
                     'contract_ref': '000024202',
                     'insurance': 'MG',
-                    'tax': 9.25,
+                    'tax': '9,25%',
                     'amount': 4.57
                 }
             ]
@@ -56,13 +56,13 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'invoice_clearan
                 {
                     'contract_ref': '000024201',
                     'insurance': 'AHI option 200',
-                    'tax': 10.0,
+                    'tax': '10%',
                     'amount': 94.49
                     },
                 {
                     'contract_ref': '000024202',
                     'insurance': 'MG',
-                    'tax': 9.25,
+                    'tax': '9,25%',
                     'amount': 4.57
                 }
             ]
