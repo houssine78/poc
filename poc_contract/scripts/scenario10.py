@@ -25,7 +25,7 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'new_contract', 
         {
             'contract_ref': '000028601',
             'insurance': 'AHI option 150',
-            'tax': 10,
+            'tax': '10%',
             'annual_amount': 144.00,
             'annual_amount_texcl': 130.91,
             'tax_amount': 13.09,
@@ -38,7 +38,7 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'new_contract', 
         {
             'contract_ref': '000028602',
             'insurance': 'LCH',
-            'tax': 10,
+            'tax': '10%',
             'annual_amount': 84.00,
             'annual_amount_texcl': 76.36,
             'tax_amount': 7.64,
@@ -51,7 +51,7 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'new_contract', 
         {
             'contract_ref': '000028603',
             'insurance': 'MG',
-            'tax': 9.25,
+            'tax': '9,25%',
             'annual_amount': 4.04,
             'annual_amount_texcl': 3.70,
             'tax_amount': 0.34,
@@ -63,7 +63,6 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'new_contract', 
         }]
     },
 ]])
-# record = models.execute_kw(db, uid, password, 'contract.contract', 'read', [ids])
 print(common.version())
 print(uid)
 print(ids)

@@ -21,7 +21,7 @@ ids = models.execute_kw(db, uid, password, 'contract.contract', 'new_beneficiary
         {
             'contract_ref': '000035301',
             'insurance': 'AHI Base',
-            'tax': 10,
+            'tax': '10%',
             'annual_amount': 170.28,
             'annual_amount_texcl': 154.80,
             'tax_amount': 15.48,
