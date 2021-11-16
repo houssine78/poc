@@ -3,7 +3,7 @@
 
 {
     'name': 'POC Contract',
-    'version': '14.0.1.0.7',
+    'version': '14.0.1.0.8',
     'author': 'Eezee-It',
     'website': 'http://www.eezee-it.com',
     'category': 'Account',
@@ -20,6 +20,7 @@
         "data/poc_data.xml",
         "views/contract_views.xml",
         "views/contract_line.xml",
+        "views/bank_statement_view.xml"
     ],
     'installable': True,
 }
