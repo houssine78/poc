@@ -3,6 +3,7 @@
 from odoo import api, fields, models
 from odoo.tools import date_utils
 from dateutil.relativedelta import relativedelta
+from odoo.tests.common import Form
 
 
 class ContractContract(models.Model):
@@ -268,8 +269,12 @@ class ContractContract(models.Model):
     def request_payment_out(self, data_list):
         payment_obj = self.env['account.payment']
         contract_obj = self.env['contract.contract']
+        account_obj = self.env['account.account']
 
-        account = self.env['account.account'].search([('code', '=', '440000')], limit=1)
+        account_dict = {}
+        account_dict['supplier'] = account_obj.search([('code', '=', '440000')], limit=1)
+        account_dict['customer'] = account_obj.search([('code', '=', '400000')], limit=1)
+
         payment_method = self.env['account.payment.method'].search([('code', '=', 'sepa_ct')], limit=1)
         bank_journal = self.env['account.journal'].search([('type', '=', 'bank'), ('name', '=', 'Bank')], limit=1)
 
@@ -283,7 +288,7 @@ class ContractContract(models.Model):
             pay_vals['payment_type'] = 'outbound'
             pay_vals['partner_type'] = request_payment.get('partner_type')
             pay_vals['amount'] = request_payment.get('amount')
-            pay_vals['destination_account_id'] = account.id
+            pay_vals['destination_account_id'] = account_dict.get(request_payment.get('partner_type')).id
             
             payment_obj.create(pay_vals)
         
@@ -338,9 +343,19 @@ class ContractContract(models.Model):
         return True
 
     def update_tax_on_invoice_lines(self, invoice):
-        for line in self:
-            inv_line = invoice.line_ids.filtered(lambda l: l.name == line.product_id.id)
-            
+        account = self.env['account.account'].search([('code', '=', '400000')], limit=1)
+        debit_line = invoice.line_ids.filtered(lambda l: l.account_id.id == account.id)
+        for inv_line in invoice.line_ids:
+            if inv_line.tax_group_id:
+                taxes = sum(self.contract_line_ids.filtered(lambda l: l.tax == inv_line.name).mapped('recurring_tax'))
+                if taxes > 0:
+                    diff = taxes - inv_line.credit
+                    invoice.write({'line_ids':[
+                            (1, inv_line.id, {'credit': taxes}),
+                            (1, debit_line.id, {'debit': debit_line.debit + diff})
+                        ]}
+                    )
+        return True
             
     @api.model
     def run_contract_invoicing(self, data_list):
@@ -349,7 +364,7 @@ class ContractContract(models.Model):
         for vals in data_list:
             contract = contract_obj.search([('name', '=', vals.get('contract'))])
             invoice = contract.recurring_create_invoice()
-            #contract.update_tax_on_invoice_lines()
+            contract.update_tax_on_invoice_lines(invoice)
             invoice.action_post()
 
         return True
@@ -516,7 +531,7 @@ class ContractContract(models.Model):
                 product_ref = contract_line.get('insurance')
                 line = contract.contract_line_ids.filtered(lambda l: l.contract_ref == ref)
                 vals = {
-                    'tax': 10,
+                    'tax': '10%',
                     'annual_amount': contract_line.get('annual_amount'),
                     'annual_amount_texcl': contract_line.get('annual_amount_texcl'),
                     'tax_amount': contract_line.get('tax_amount'),
