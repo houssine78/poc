@@ -20,6 +20,7 @@
         "data/poc_data.xml",
         "views/contract_views.xml",
         "views/contract_line.xml",
+        "views/bank_statement_view.xml"
     ],
     'installable': True,
 }

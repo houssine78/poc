@@ -3,7 +3,6 @@
 from odoo import api, fields, models
 from odoo.tools import date_utils
 from dateutil.relativedelta import relativedelta
-from odoo.tests.common import Form
 
 
 class ContractContract(models.Model):
