@@ -10,10 +10,10 @@ uid = common.authenticate(db, username, password, {})
 models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
 ids = models.execute_kw(db, uid, password, 'contract.contract', 'import_bank_statement', [[
     {
-    'name': 'ext_001',
+    'name': 'ext_010',
     'date': '2021-05-16',
-    'balance_start': 459.77,
-    'balance_end_real': 444.10,
+    'balance_start': 489.77,
+    'balance_end_real': 474.10,
     'lines':[
         {
             'date': '2021-05-15',
