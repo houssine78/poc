@@ -118,7 +118,8 @@ class ContractContract(models.Model):
         dates = [date_start, next_period_fd - relativedelta(days=1)]
         # create first invoice
         invoice = self._create_first_invoice(dates, ratio, fields.Date.today())
-
+        if ratio == 1:
+            self.update_tax_on_invoice_lines(invoice)
         self.recurring_next_date = next_period_fd
         lines_vals = {
             'next_period_date_start': next_period_fd,
