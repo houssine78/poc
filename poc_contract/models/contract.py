@@ -444,42 +444,28 @@ class ContractContract(models.Model):
             self.create_clearance(contract, data_list[0])
 
         return True
-        
+
     @api.model
     def get_financial_moves(self, data_list):
         contract_obj = self.env['contract.contract']
-        report_obj = self.env['account.partner.ledger']
-
+        move_line_obj = self.env['account.move.line']
+        domain_filter = [
+            ('move_id.state', '=', 'posted'),
+            ('full_reconcile_id', '=', False),
+            ('balance', '!=', 0),
+            ('account_id.reconcile', '=', True)
+        ]
+        res = []
         for vals in data_list:
             contract = contract_obj.search([('name', '=', vals.get('contract'))])
             partner = contract.partner_id
-            options = {
-                'partner': True,
-                'partner_ids': [partner.id],
-                'partner_categories': [], 
-                'unfolded_lines': [],
-                'unfold_all': False,
-                'unreconciled': False,
-                'all_entries': False,
-                'unposted_in_period': True,
-                'date': {
-                    'string': '2021',
-                    'period_type': 'fiscalyear',
-                    'filter': 'this_year',
-                    'mode': 'range',
-                    'strict_range': False,
-                    'date_to': vals.get('date_to'),
-                    'date_from': vals.get('date_from')
-                },
-                'account_type': [
-                     {'id': 'receivable', 'selected': False},
-                     {'id': 'payable', 'selected': False}
-                 ],
-            }
-            res = report_obj._get_lines(options)
-            # res = report_obj.get_xlsx(options)
-        return str(res)
-
+            domain_filter.append(('partner_id', '=', partner.id))
+            lines = move_line_obj.search(domain_filter)
+            res.append(["Client", "Date", "Journal Entry", "Compte", "Label", "Echeance", "Debit", "Credit", "Balance"])
+            for line in lines:
+                res.append([line.partner_id.name, line.date, line.move_id.name, line.account_id.name, line.name, line.date_maturity, line.debit, line.credit, line.balance])
+        return res
+        
     def _create_invoice(self, name, date, move_type, amount, product_ref, contract_line, ratio=1):
         move_obj = self.env['account.move']
         line_obj = self.env['account.move.line']

@@ -15,4 +15,6 @@ fin_moves = models.execute_kw(db, uid, password, 'contract.contract', 'get_finan
     'date_to': '2021-12-31',
     },
 ]])
+print(common.version())
+print(uid)
 print(fin_moves)
