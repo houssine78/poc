@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="partner_record_form_view" model="ir.ui.view">
+        <field name="name">partner.record form view</field>
+        <field name="model">partner.record</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button
+                        name="create_invoice"
+                        type="object"
+                        string="Create invoices"
+                        groups="base.group_user"
+                    />
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button
+                            name="action_show_invoices"
+                            type="object"
+                            icon="fa-list"
+                            class="oe_stat_button"
+                        >
+                            <field
+                                string="Invoices"
+                                name="invoice_count"
+                                widget="statinfo"
+                            />
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name" />
+                            <field name="partner_id" />
+                            <field name="recurring_rule_type" />
+                        </group>
+                        <group>
+                            <field name="start_date" />
+                            <field name="end_date" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Ongoing record lines">
+                            <field name="ongoing_record_lines">
+                                <tree>
+                                    <field name="product_id"/>
+                                    <field name="amount"/>
+                                    <field name="start_date"/>
+                                    <field name="end_date"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Old record lines">
+                            <field name="old_record_lines">
+                                <tree>
+                                    <field name="product_id"/>
+                                    <field name="amount"/>
+                                    <field name="start_date"/>
+                                    <field name="end_date"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="partner_record_tree_view" model="ir.ui.view">
+        <field name="name">partner.record tree view</field>
+        <field name="model">partner.record</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name" />
+                <field name="partner_id" />
+                <field name="recurring_rule_type" />
+                <field name="start_date" />
+                <field name="end_date" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_partner_record" model="ir.actions.act_window">
+        <field name="name">Partner Record</field>
+        <field name="res_model">partner.record</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="oe_view_nocontent_create">
+                Click to create a new partner record.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_partner_record" parent="account.menu_finance_receivables" action="action_partner_record" sequence="99" />
+</odoo>
