@@ -14,7 +14,6 @@ class UpdateInsuranceAmount(models.TransientModel):
         self.ensure_one()
 
         record_line_obj = self.env['partner.record.line']
-        #payment_term = self.env.ref('payment_term_dynamic')
         line = record_line_obj.browse(self.env.context['active_id'])
         vals = {
             'amount': self.amount,
@@ -27,13 +26,5 @@ class UpdateInsuranceAmount(models.TransientModel):
 
         new_line.create_prime_scheme()
         
-        # date_invoice = fields.Date.today()
-        # invoice_vals = new_insurance.record_id._prepare_invoice_values(date_invoice, self.start_date, payment_term)
-        # line_vals = new_insurance._prepare_invoice_line_values(move_form)
-        # invoice_vals["invoice_line_ids"].append((0, 0, line_vals))
-        # del invoice_vals["line_ids"]
-        # move_obj.create(invoice_values)
-        #new_insurance.invoiced = True
-
         return True
         

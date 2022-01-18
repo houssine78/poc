@@ -3,10 +3,15 @@
 from odoo import fields, models
 
 
+class AccountMove(models.Model):
+    _inherit = "account.move"
+
+    ref_date = fields.Date(string="Reference date")
+
+
 class AccountMoveLine(models.Model):
     _inherit = "account.move.line"
 
     record_line_id = fields.Many2one(
         "partner.record.line", string="Record Line", index=True
     )
-    ref_date = fields.Date(string="Reference date")

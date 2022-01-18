@@ -1,7 +1,11 @@
 # Copyright 2021 Eezee-IT (<http://www.eezee-it.com> - admin@eezee-it.com)
 # License LGPL-3.0 or later (https://www.gnu.org/licenses/lgpl.html).
+from functools import reduce
+from dateutil.relativedelta import relativedelta
+
 from odoo.tools import date_utils
 from odoo import api, fields, models
+from odoo.tools.float_utils import float_is_zero, float_round
 
 
 class AccountPaymentTerm(models.Model):
@@ -35,8 +39,7 @@ class AccountPaymentTerm(models.Model):
             return float_round(value_amount, precision_digits=precision_digits)
         elif type in ("percent", "percent_amount_untaxed"):
             amt = total_amount * value_amount / 100.0
-            if self.amount_round:
-                amt = float_round(amt, precision_rounding=0.0)
+            amt = float_round(amt, precision_rounding=0.1)
             return float_round(amt, precision_digits=precision_digits)
         elif type == "balance":
             return float_round(remaining_amount, precision_digits=precision_digits)
@@ -48,8 +51,8 @@ class AccountPaymentTerm(models.Model):
             return super(AccountPaymentTerm, self).compute(value, date_ref, currency)
 
         last_account_move = self.env.context.get("last_account_move", False)
-        if last_account_move.date_ref:
-            date_ref = last_account_move.date_ref
+        if last_account_move.ref_date:
+            date_ref = last_account_move.ref_date
         else:
             date_ref = date_ref or fields.Date.today()
         amount = value
@@ -63,18 +66,18 @@ class AccountPaymentTerm(models.Model):
                 currency = self.env.company.currency_id
         precision_digits = currency.decimal_places
         next_date = fields.Date.from_string(date_ref)
-        end_of_year = date_utils.enf_of(next_date, 'year')
-        months = (end_of_year.month - next_date) + 1
+        end_of_year = date_utils.end_of(next_date, 'year')
+        months = (end_of_year.month - next_date.month) + 1
         percentage = 100 / months
         for i in range(months):
             if i==months:
-                amt = line.compute_line_amount('balance', percentage, value, amount, precision_digits)
-                break
-            amt = line.compute_line_amount('percent', percentage, value, amount, precision_digits)
-            next_date += relativedelta(months=1)
+                amt = self.compute_line_amount('balance', percentage, value, amount, precision_digits)
+            else:
+                amt = self.compute_line_amount('percent', percentage, value, amount, precision_digits)
+                next_date += relativedelta(months=1)
             i=i+1
 
-            next_date = self.apply_payment_days(line, next_date)
+            #next_date = self.apply_payment_days(line, next_date)
             next_date = self.apply_holidays(next_date)
             if not float_is_zero(amt, precision_digits=precision_digits):
                 result.append((fields.Date.to_string(next_date), amt))

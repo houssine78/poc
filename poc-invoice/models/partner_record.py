@@ -45,7 +45,7 @@ class PartnerRecord(models.Model):
         )
         return invoices
 
-    def _prepare_invoice_values(self, invoice_date, ref_date=None, payment_term_id=None):
+    def _prepare_invoice_values(self, invoice_date, ref_date=False, payment_term_id=None):
         self.ensure_one()
         move_obj = self.env['account.move']
         journal = self.env["account.journal"].search([("type", "=", 'sale')])

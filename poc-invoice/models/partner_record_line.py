@@ -21,7 +21,7 @@ class PartnerRecordLine(models.Model):
     premium_schemes = fields.One2many('premium.scheme', 'record_line_id')
     invoiced = fields.Boolean()
 
-    def _prepare_invoice_line_values(self, move_form):
+    def _prepare_invoice_line_values(self, move_form, amount=None):
         self.ensure_one()
         line_form = move_form.invoice_line_ids.new()
         line_form.product_id = self.product_id
@@ -33,7 +33,7 @@ class PartnerRecordLine(models.Model):
                 else False,
                 "quantity": 1,
                 "record_line_id": self.id,
-                "price_unit": self.amount,
+                "price_unit": amount,
             }
         )
         return invoice_line_vals
@@ -49,8 +49,7 @@ class PartnerRecordLine(models.Model):
 
     def create_prime_scheme(self):
         premium_schem_obj = self.env['premium.scheme']
-        # premium_scheme = premium_schem_obj.search([('record_line_id', '=', self.id)])
-        if len(self.premium_scheme) > 0:
+        if len(self.premium_schemes) > 0:
             raise ValidationError(_("A premium scheme already exists for this line"))
         premium = self.amount / 12
         vals = self.get_premium_scheme_vals(premium, self.start_date)
@@ -71,19 +70,21 @@ class PartnerRecordLine(models.Model):
             matrix[i] = premium_scheme.read(MONTH_KEYS + ['invoiced'])
             i+=1
 
-        max = len(matrix)-1
+        limit = len(matrix)-1
         for month in MONTH_KEYS:
             i=0
             j=1
-            while i < max:
+            while j < limit:
                 if matrix[i][0][month] > 0.0:
+                    while j < limit and matrix[j][0][month] == 0.0:
+                        j+=1
                     if matrix[j][0][month] > 0.0:
                         vals[month] += matrix[i][0][month] - matrix[j][0][month]
                         if matrix[j][0]['invoiced'] == True:
                             break
-                    elif j < max:
-                        j+=1
+                        
                 i+=1
+                j=i+1
         return vals
                     
 
@@ -95,6 +96,17 @@ class PartnerRecordLine(models.Model):
             raise ValidationError(_("Line already invoiced"))
         vals = self.compute_premium_scheme_amount()
         amount = sum(vals.values())
+
+        payment_term = self.env.ref('poc-invoice.payment_term_dynamic')
+        move_obj = self.env['account.move']
+        date_invoice = fields.Date.today()
+        invoice_vals, move_form = self.record_id._prepare_invoice_values(date_invoice, self.start_date, payment_term)
+        line_vals = self._prepare_invoice_line_values(move_form, amount)
+        invoice_vals["invoice_line_ids"].append((0, 0, line_vals))
+        del invoice_vals["line_ids"]
+        move_obj.create(invoice_vals)
+        lines = self.search([('product_id', '=', self.product_id.id), ('id', '<', self.id)])
+        lines.write({'invoiced': True})
         return True
         
 
