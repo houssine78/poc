@@ -9,3 +9,4 @@ class AccountMoveLine(models.Model):
     record_line_id = fields.Many2one(
         "partner.record.line", string="Record Line", index=True
     )
+    ref_date = fields.Date(string="Reference date")

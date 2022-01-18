@@ -19,8 +19,7 @@
                             name="action_show_invoices"
                             type="object"
                             icon="fa-list"
-                            class="oe_stat_button"
-                        >
+                            class="oe_stat_button">
                             <field
                                 string="Invoices"
                                 name="invoice_count"
@@ -47,6 +46,10 @@
                                     <field name="amount"/>
                                     <field name="start_date"/>
                                     <field name="end_date"/>
+                                    <button name="%(action_update_insurance_amount_wizard)d" string="Update insurance"
+                                        type="action" attrs="{'invisible': [ ('end_date', '!=', False)]}"/>
+                                    <button name="create_prime_scheme" string="Prime scheme" type="object"/>
+                                    <button name="action_invoice" string="iInvoice" type="object"/>
                                 </tree>
                             </field>
                         </page>
@@ -57,6 +60,26 @@
                                     <field name="amount"/>
                                     <field name="start_date"/>
                                     <field name="end_date"/>
+                                </tree>
+                            </field>
+                        </page>
+                        <page string="Premium scheme">
+                            <field name="premium_scheme">
+                                <tree>
+                                    <field name="product_id"/>
+                                    <field name="january"/>
+                                    <field name="february"/>
+                                    <field name="march"/>
+                                    <field name="april"/>
+                                    <field name="may"/>
+                                    <field name="june"/>
+                                    <field name="july"/>
+                                    <field name="august"/>
+                                    <field name="september"/>
+                                    <field name="october"/>
+                                    <field name="november"/>
+                                    <field name="december"/>
+                                    <field name="invoiced"/>
                                 </tree>
                             </field>
                         </page>

@@ -20,7 +20,8 @@
     'data': [
         "data/poc_data.xml",
         "security/ir.model.access.csv",
-        "views/partner_record_view.xml"
+        "wizard/update_insurance_wizard.xml",
+        "views/partner_record_view.xml",
     ],
     'installable': True,
 }
