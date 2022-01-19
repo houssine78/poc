@@ -70,13 +70,19 @@ class PartnerRecordLine(models.Model):
             matrix[i] = premium_scheme.read(MONTH_KEYS + ['invoiced'])
             i+=1
 
+        # First invoice of the year case
+        if len(matrix) == 1:
+            for month in MONTH_KEYS:
+                vals[month] += matrix[0][0][month]
+            return vals
+
         limit = len(matrix)-1
         for month in MONTH_KEYS:
             i=0
             j=1
-            while j < limit:
+            while j <= limit:
                 if matrix[i][0][month] > 0.0:
-                    while j < limit and matrix[j][0][month] == 0.0:
+                    while j <= limit and matrix[j][0][month] == 0.0:
                         j+=1
                     if matrix[j][0][month] > 0.0:
                         vals[month] += matrix[i][0][month] - matrix[j][0][month]
@@ -87,13 +93,14 @@ class PartnerRecordLine(models.Model):
                 j=i+1
         return vals
                     
-
     def action_invoice(self):
         # TODO add a check function to check
         # if all the line have a premium scheme
         # return user error otherwise
         if self.invoiced:
             raise ValidationError(_("Line already invoiced"))
+        if not self.premium_schemes:
+            self.create_prime_scheme()
         vals = self.compute_premium_scheme_amount()
         amount = sum(vals.values())
 
@@ -105,29 +112,6 @@ class PartnerRecordLine(models.Model):
         invoice_vals["invoice_line_ids"].append((0, 0, line_vals))
         del invoice_vals["line_ids"]
         move_obj.create(invoice_vals)
-        lines = self.search([('product_id', '=', self.product_id.id), ('id', '<', self.id)])
+        lines = self.search([('product_id', '=', self.product_id.id), ('id', '<=', self.id)])
         lines.write({'invoiced': True})
         return True
-        
-
-class InsurancePremiumScheme(models.Model):
-    _name = 'premium.scheme'
-
-    record_line_id = fields.Many2one('partner.record.line')
-    partner_record_id = fields.Many2one('partner.record', related='record_line_id.record_id', store=True)
-    product_id = fields.Many2one('product.product', related='record_line_id.product_id')
-    start_date = fields.Date(related='record_line_id.start_date')
-    end_date = fields.Date(related='record_line_id.end_date')
-    invoiced = fields.Boolean(related='record_line_id.invoiced')
-    january = fields.Float()
-    february = fields.Float()
-    march = fields.Float()
-    april = fields.Float()
-    may = fields.Float()
-    june = fields.Float()
-    july = fields.Float()
-    august = fields.Float()
-    september = fields.Float()
-    october = fields.Float()
-    november = fields.Float()
-    december = fields.Float()

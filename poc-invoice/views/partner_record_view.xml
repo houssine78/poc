@@ -49,7 +49,7 @@
                                     <button name="%(action_update_insurance_amount_wizard)d" string="Update insurance"
                                         type="action" attrs="{'invisible': [ ('end_date', '!=', False)]}"/>
                                     <button name="create_prime_scheme" string="Prime scheme" type="object"/>
-                                    <button name="action_invoice" string="iInvoice" type="object"/>
+                                    <button name="action_invoice" string="Invoice" type="object"/>
                                 </tree>
                             </field>
                         </page>

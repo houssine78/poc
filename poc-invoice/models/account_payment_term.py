@@ -39,7 +39,7 @@ class AccountPaymentTerm(models.Model):
             return float_round(value_amount, precision_digits=precision_digits)
         elif type in ("percent", "percent_amount_untaxed"):
             amt = total_amount * value_amount / 100.0
-            amt = float_round(amt, precision_rounding=0.1)
+            amt = float_round(amt, precision_rounding=0.001)
             return float_round(amt, precision_digits=precision_digits)
         elif type == "balance":
             return float_round(remaining_amount, precision_digits=precision_digits)
@@ -59,9 +59,7 @@ class AccountPaymentTerm(models.Model):
         result = []
         if not currency:
             if self.env.context.get("currency_id"):
-                currency = self.env["res.currency"].browse(
-                    self.env.context["currency_id"]
-                )
+                currency = self.env["res.currency"].browse(self.env.context["currency_id"])
             else:
                 currency = self.env.company.currency_id
         precision_digits = currency.decimal_places
@@ -74,14 +72,14 @@ class AccountPaymentTerm(models.Model):
                 amt = self.compute_line_amount('balance', percentage, value, amount, precision_digits)
             else:
                 amt = self.compute_line_amount('percent', percentage, value, amount, precision_digits)
-                next_date += relativedelta(months=1)
             i=i+1
 
             #next_date = self.apply_payment_days(line, next_date)
-            next_date = self.apply_holidays(next_date)
+            #next_date = self.apply_holidays(next_date)
             if not float_is_zero(amt, precision_digits=precision_digits):
                 result.append((fields.Date.to_string(next_date), amt))
                 amount -= amt
+            next_date += relativedelta(months=1)
         amount = reduce(lambda x, y: x + y[1], result, 0.0)
         dist = round(value - amount, precision_digits)
         if dist:

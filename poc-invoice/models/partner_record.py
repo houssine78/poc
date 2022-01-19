@@ -94,7 +94,11 @@ class PartnerRecord(models.Model):
             invoice_vals, move_form = record._prepare_invoice_values(invoice_date)
             lines = record.ongoing_record_lines.filtered(lambda l: not l.invoiced)
             for line in lines:
-                line_vals = line._prepare_invoice_line_values(move_form)
+                if not line.premium_schemes:
+                    line.create_prime_scheme()
+                vals = line.compute_premium_scheme_amount()
+                amount = sum(vals.values())
+                line_vals = line._prepare_invoice_line_values(move_form, amount)
                 invoice_vals["invoice_line_ids"].append((0, 0, line_vals))
                 del invoice_vals["line_ids"]
             invoices_values.append(invoice_vals)
