@@ -91,9 +91,9 @@ class PartnerRecord(models.Model):
         if not invoice_date:
             invoice_date = fields.Date().today()
         for record in self:
-            invoice_vals, move_form = record._prepare_invoice_values(invoice_date)
             lines = record.ongoing_record_lines.filtered(lambda l: not l.invoiced)
             for line in lines:
+                invoice_vals, move_form = record._prepare_invoice_values(invoice_date)
                 if not line.premium_schemes:
                     line.create_prime_scheme()
                 vals = line.compute_premium_scheme_amount()
@@ -101,8 +101,8 @@ class PartnerRecord(models.Model):
                 line_vals = line._prepare_invoice_line_values(move_form, amount)
                 invoice_vals["invoice_line_ids"].append((0, 0, line_vals))
                 del invoice_vals["line_ids"]
-            invoices_values.append(invoice_vals)
-            move_obj.create(invoices_values)
+                move_obj.create(invoice_vals)
+            #invoices_values.append(invoice_vals)
             lines.write({'invoiced': True})
         return True
         
