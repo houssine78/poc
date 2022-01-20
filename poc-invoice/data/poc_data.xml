@@ -96,83 +96,83 @@
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">1</field>
+            <field name="months">0</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_2" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">2</field>
+            <field name="months">1</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_3" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">3</field>
+            <field name="months">2</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_4" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">4</field>
+            <field name="months">3</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_5" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">5</field>
+            <field name="months">4</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_6" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">6</field>
+            <field name="months">5</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_7" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">7</field>
+            <field name="months">6</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_8" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">8</field>
+            <field name="months">7</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_9" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">9</field>
+            <field name="months">8</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_10" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">10</field>
+            <field name="months">9</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_11" model="account.payment.term.line">
             <field name="value">percent</field>
             <field name="value_amount">8.333333</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">11</field>
+            <field name="months">10</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
         <record id="payment_term_line_monthly_12" model="account.payment.term.line">
             <field name="value">balance</field>
             <field name="option">day_after_invoice_date</field>
-            <field name="months">12</field>
+            <field name="months">11</field>
             <field name="payment_id" ref="payment_term_monthly"/>
         </record>
     </data>
